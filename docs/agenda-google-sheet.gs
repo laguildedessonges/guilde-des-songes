@@ -1300,6 +1300,60 @@ function doGet() {
   }
 }
 
+/**
+ * Retire du registre l'inscription d'un pseudo pour une date donnée.
+ * Ne touche qu'aux lignes venues du site : celles de Discord appartiennent à la
+ * relève, qui les réécrirait aussitôt.
+ */
+function desinscrire(registre, dateSoiree, titre, pseudo, quota) {
+  const feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(registre)
+  if (!feuille || feuille.getLastRow() < 2) {
+    return reponse({ ok: false, erreur: 'aucune inscription à retirer' })
+  }
+
+  const valeurs = feuille.getDataRange().getValues()
+  const entetes = valeurs[0].map((en) => cleEntete(texte(en)))
+  const colonne = (nom) => entetes.indexOf(cleEntete(nom))
+
+  const iDate = colonne('Date')
+  const iTitre = colonne('Intitulé')
+  const iPseudo = colonne('Pseudo') !== -1 ? colonne('Pseudo') : colonne('Pseudo Discord')
+  const iOrigine = colonne('Origine')
+  if (iDate === -1 || iPseudo === -1) return reponse({ ok: false, erreur: 'registre illisible' })
+
+  const cherche = pseudo.toLowerCase()
+  let surDiscord = false
+
+  for (let index = 1; index < valeurs.length; index++) {
+    const ligne = valeurs[index]
+    if (estBandeau(ligne[0])) continue
+    if (versDateIso(ligne[iDate]) !== dateSoiree) continue
+
+    const intitule = texte(ligne[iTitre])
+    if (intitule && titre && intitule.toLowerCase() !== titre.toLowerCase()) continue
+    if (texte(ligne[iPseudo]).toLowerCase() !== cherche) continue
+
+    if (iOrigine !== -1 && texte(ligne[iOrigine]) === ORIGINE_DISCORD) {
+      surDiscord = true
+      continue
+    }
+
+    feuille.deleteRow(index + 1)
+
+    const restants = compterInscrits(lignes(registre), dateSoiree, titre)
+    return reponse({
+      ok: true,
+      desinscrit: true,
+      restantes: quota.places ? Math.max(0, quota.places - restants) : null,
+    })
+  }
+
+  if (surDiscord) {
+    return reponse({ ok: false, surDiscord: true, erreur: 'inscription venue de Discord' })
+  }
+  return reponse({ ok: false, erreur: 'aucune inscription à ce nom' })
+}
+
 /** Enregistre une inscription à une soirée mensuelle, si elle n'est pas complète. */
 function doPost(e) {
   // Un seul traitement à la fois : deux inscriptions simultanées ne peuvent pas
@@ -1337,6 +1391,14 @@ function doPost(e) {
     // C'est l'intitulé qui regroupe les inscriptions dans le registre : si le
     // site ne l'a pas transmis, on le reprend de la ligne d'agenda trouvée.
     if (!titre) titre = texte(champ(source, 'Titre'))
+
+    // Se désinscrire depuis le site : on retire la ligne, et le compteur
+    // remonte d'autant. Une inscription venue de Discord n'est pas touchée —
+    // elle reviendrait à la relève suivante ; c'est sur Discord qu'on retire
+    // son « Intéressé·e ».
+    if (simplifier(donnees.action) === 'desinscription') {
+      return desinscrire(registre, dateSoiree, titre, pseudo, placesDe(champ(source, 'Places')))
+    }
 
     const quota = placesDe(champ(source, 'Places'))
 

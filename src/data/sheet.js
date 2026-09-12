@@ -86,7 +86,20 @@ async function demanderAgenda() {
 
 /** Enregistre une inscription. Renvoie { ok, rang, restantes, complet }. */
 export async function postInscription({ soiree, dateSoiree, horaire, pseudo }) {
-  const corps = JSON.stringify({ soiree, dateSoiree, horaire, pseudo })
+  return envoyer({ soiree, dateSoiree, horaire, pseudo })
+}
+
+/**
+ * Retire une inscription faite depuis le site.
+ * Renvoie { ok, restantes }, ou { surDiscord: true } si la ligne vient de
+ * Discord — c'est là-bas qu'il faut alors retirer son « Intéressé·e ».
+ */
+export async function postDesinscription({ soiree, dateSoiree, pseudo }) {
+  return envoyer({ action: 'desinscription', soiree, dateSoiree, pseudo })
+}
+
+async function envoyer(donnees) {
+  const corps = JSON.stringify(donnees)
 
   try {
     const response = await fetch(SHEET_ENDPOINT, {

@@ -11,7 +11,7 @@
 // l'envoi reste manuel.
 import { computed, ref } from 'vue'
 import { contactHref } from '../socials.js'
-import { SHEET_ENDPOINT, postInscription } from '../data/sheet.js'
+import { SHEET_ENDPOINT, postInscription, postDesinscription } from '../data/sheet.js'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -32,6 +32,38 @@ const registered = ref(false)
 // Rang d'arrivée et places restantes renvoyés par la feuille, quand ils sont lisibles.
 const rang = ref(0)
 const restantes = ref(null)
+
+// Mémoire du navigateur : de quoi proposer « Me désinscrire » au retour, sans
+// demander de compte ni de mot de passe. Elle ne vaut que sur cet appareil —
+// depuis un autre navigateur, la désinscription passe par le Discord ou par la
+// Guilde. C'est le prix à payer pour ne pas laisser n'importe qui retirer
+// l'inscription de n'importe qui.
+const CLE_MEMOIRE = `guilde-inscrit:${props.date}:${props.title}`
+
+function pseudoMemorise() {
+  try {
+    return localStorage.getItem(CLE_MEMOIRE) || ''
+  } catch {
+    // Navigation privée, cookies refusés : on s'en passe.
+    return ''
+  }
+}
+
+function memoriser(valeur) {
+  try {
+    if (valeur) localStorage.setItem(CLE_MEMOIRE, valeur)
+    else localStorage.removeItem(CLE_MEMOIRE)
+  } catch {
+    // Sans mémoire, l'inscription fonctionne ; seul le retrait devra passer
+    // par le Discord.
+  }
+}
+
+// Pseudo retenu d'une inscription précédente : le formulaire cède la place à un
+// rappel et au bouton de retrait.
+const dejaInscrit = ref(pseudoMemorise())
+const retrait = ref(false)
+const retire = ref(false)
 
 const dateFormat = new Intl.DateTimeFormat('fr-FR', {
   weekday: 'long',
@@ -93,12 +125,65 @@ async function submit() {
   restantes.value = typeof resultat.restantes === 'number' ? resultat.restantes : null
   registered.value = true
   sent.value = true
+  memoriser(name)
+  dejaInscrit.value = name
+  emit('inscrit')
+}
+
+async function seDesinscrire() {
+  retrait.value = true
+  error.value = ''
+
+  const resultat = await postDesinscription({
+    soiree: props.title,
+    dateSoiree: props.date,
+    pseudo: dejaInscrit.value,
+  })
+
+  retrait.value = false
+
+  if (resultat.surDiscord) {
+    error.value =
+      'Cette inscription vient de Discord : retirez votre « Intéressé·e » sur l’événement.'
+    return
+  }
+
+  if (!resultat.ok) {
+    error.value = "La désinscription n'a pas pu être envoyée. Réessayez ou passez par le Discord."
+    return
+  }
+
+  memoriser('')
+  dejaInscrit.value = ''
+  pseudo.value = ''
+  sent.value = false
+  registered.value = false
+  retire.value = true
   emit('inscrit')
 }
 </script>
 
 <template>
-  <form v-if="!sent" class="signup" @submit.prevent="submit">
+  <!-- Inscription déjà prise depuis ce navigateur : on ne redemande pas le
+       pseudo, on rappelle où l'on en est et on offre de se retirer. -->
+  <div v-if="dejaInscrit && !sent" class="signup signup--inscrit">
+    <p class="signup__rappel">
+      <span class="signup__badge">Inscrit·e</span>
+      Vous êtes inscrit·e à <strong>{{ title }}</strong> sous le pseudo
+      <strong>{{ dejaInscrit }}</strong>.
+    </p>
+    <button class="btn btn--ghost signup__btn" type="button" :disabled="retrait" @click="seDesinscrire">
+      {{ retrait ? 'Retrait…' : 'Me désinscrire' }}
+    </button>
+    <p v-if="error" class="signup__error">{{ error }}</p>
+  </div>
+
+  <form v-else-if="!sent" class="signup" @submit.prevent="submit">
+    <p v-if="retire" class="signup__rappel">
+      <span class="signup__badge">Désinscription enregistrée</span>
+      Votre place est rendue. Vous pouvez vous réinscrire quand vous voulez.
+    </p>
+
     <!-- Pseudo Discord de préférence : c'est lui qui évite de compter deux fois
          la même personne si elle se signale aussi sur le serveur. Mais un
          prénom suffit — la soirée mensuelle est ouverte à qui n'a pas Discord,
@@ -148,6 +233,18 @@ async function submit() {
       <span class="signup__badge">Message prêt</span>
       Votre inscription à <strong>{{ title }}</strong> est prête&nbsp;: il ne reste qu'à
       envoyer le message qui vient de s'ouvrir.
+    </template>
+
+    <template v-if="registered && dejaInscrit">
+      <button
+        class="btn btn--ghost signup__btn signup__btn--retrait"
+        type="button"
+        :disabled="retrait"
+        @click="seDesinscrire"
+      >
+        {{ retrait ? 'Retrait…' : 'Me désinscrire' }}
+      </button>
+      <span v-if="error" class="signup__error">{{ error }}</span>
     </template>
   </p>
 </template>
@@ -203,6 +300,25 @@ async function submit() {
 .signup__error {
   color: var(--accent-strong);
   font-size: 0.95rem;
+}
+
+.signup--inscrit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* Une phrase, pas une grille : en grille, chaque « strong » devenait une
+   cellule et le rappel se lisait en escalier. */
+.signup__rappel {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.signup__btn--retrait {
+  margin-top: 0.75rem;
 }
 
 /* Mention discrète : elle informe sans peser sur le geste d'inscription. */
