@@ -13,6 +13,19 @@
  * • « Archives »        : trace des dates passées — l'événement ou la soirée,
  *                         groupé par type puis par date. Pas les inscriptions.
  *
+ * QUI INSCRIT
+ * -----------
+ * La Guilde, à la main. Le site n'écrit rien dans ce classeur : son formulaire
+ * prépare un message vers la boîte de l'association, parce qu'on préfère
+ * échanger avec la personne avant de l'inscrire. Le script n'expose donc
+ * qu'une lecture (`doGet`) — une écriture publique sans appelant n'aurait servi
+ * qu'à laisser une porte ouverte.
+ *
+ * Les inscriptions arrivent ainsi par deux chemins :
+ * • saisies à la main dans l'onglet « Inscriptions » correspondant ;
+ * • relevées sur l'événement Discord (colonne « Lien Discord »), pour les
+ *   personnes ayant cliqué « Intéressé·e ».
+ *
  * OUVRIR (ET FERMER) LES INSCRIPTIONS
  * -----------------------------------
  * Tout se joue dans la colonne « Places » des deux onglets d'agenda, où l'on
@@ -87,7 +100,6 @@ const ONGLET_ARCHIVES = 'Archives'
 // Lien avec les événements Discord. Le jeton du bot ne vit pas dans ce fichier :
 // il se colle dans Paramètres du projet › Propriétés du script, sous ce nom.
 const CLE_JETON_DISCORD = 'DISCORD_TOKEN'
-const ORIGINE_SITE = 'Site'
 const ORIGINE_DISCORD = 'Discord'
 
 // Types de l'onglet « Événements ». Les soirées mensuelles ont leur propre
@@ -213,9 +225,11 @@ const COLONNES_INSCRIPTIONS = [
     nom: 'Origine',
     largeur: 90,
     aide:
-      '« Site » pour une inscription passée par le formulaire, « Discord » pour ' +
-      'une personne ayant cliqué « Intéressé·e » sur l’événement. Les lignes ' +
-      'Discord sont gérées par le script : ne pas les modifier à la main.',
+      '« Discord » est écrit par le script pour une personne ayant cliqué ' +
+      '« Intéressé·e » sur l’événement : ces lignes lui appartiennent, il les ' +
+      'ajoute et les retire tout seul. Pour une inscription que vous saisissez, ' +
+      'notez ce qui vous est utile — « mail », « sur place »… : le script n’y ' +
+      'touche jamais.',
   },
 ]
 
@@ -1297,159 +1311,6 @@ function doGet() {
     return reponse({ ok: true, evenements: parties.concat(mensuelles) })
   } catch (erreur) {
     return reponse({ ok: false, erreur: String(erreur) })
-  }
-}
-
-/**
- * Retire du registre l'inscription d'un pseudo pour une date donnée.
- * Ne touche qu'aux lignes venues du site : celles de Discord appartiennent à la
- * relève, qui les réécrirait aussitôt.
- */
-function desinscrire(registre, dateSoiree, titre, pseudo, quota) {
-  const feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(registre)
-  if (!feuille || feuille.getLastRow() < 2) {
-    return reponse({ ok: false, erreur: 'aucune inscription à retirer' })
-  }
-
-  const valeurs = feuille.getDataRange().getValues()
-  const entetes = valeurs[0].map((en) => cleEntete(texte(en)))
-  const colonne = (nom) => entetes.indexOf(cleEntete(nom))
-
-  const iDate = colonne('Date')
-  const iTitre = colonne('Intitulé')
-  const iPseudo = colonne('Pseudo') !== -1 ? colonne('Pseudo') : colonne('Pseudo Discord')
-  const iOrigine = colonne('Origine')
-  if (iDate === -1 || iPseudo === -1) return reponse({ ok: false, erreur: 'registre illisible' })
-
-  const cherche = pseudo.toLowerCase()
-  let surDiscord = false
-
-  for (let index = 1; index < valeurs.length; index++) {
-    const ligne = valeurs[index]
-    if (estBandeau(ligne[0])) continue
-    if (versDateIso(ligne[iDate]) !== dateSoiree) continue
-
-    const intitule = texte(ligne[iTitre])
-    if (intitule && titre && intitule.toLowerCase() !== titre.toLowerCase()) continue
-    if (texte(ligne[iPseudo]).toLowerCase() !== cherche) continue
-
-    if (iOrigine !== -1 && texte(ligne[iOrigine]) === ORIGINE_DISCORD) {
-      surDiscord = true
-      continue
-    }
-
-    feuille.deleteRow(index + 1)
-
-    const restants = compterInscrits(lignes(registre), dateSoiree, titre)
-    return reponse({
-      ok: true,
-      desinscrit: true,
-      restantes: quota.places ? Math.max(0, quota.places - restants) : null,
-    })
-  }
-
-  if (surDiscord) {
-    return reponse({ ok: false, surDiscord: true, erreur: 'inscription venue de Discord' })
-  }
-  return reponse({ ok: false, erreur: 'aucune inscription à ce nom' })
-}
-
-/** Enregistre une inscription à une soirée mensuelle, si elle n'est pas complète. */
-function doPost(e) {
-  // Un seul traitement à la fois : deux inscriptions simultanées ne peuvent pas
-  // se retrouver sur la même ligne, recevoir le même rang, ni dépasser le quota.
-  const verrou = LockService.getScriptLock()
-  verrou.waitLock(20000)
-
-  try {
-    const donnees = JSON.parse(e.postData.contents)
-    const dateSoiree = versDateIso(donnees.dateSoiree)
-    const pseudo = texte(donnees.pseudo)
-
-    if (!dateSoiree || !pseudo) {
-      return reponse({ ok: false, erreur: 'inscription incomplète' })
-    }
-
-    // La ligne concernée est cherchée d'abord parmi les soirées mensuelles,
-    // puis parmi les événements : chacune a son propre registre d'inscriptions.
-    let titre = texte(donnees.soiree)
-
-    let source = lignes(ONGLET_MENSUELLES).find((l) => versDateIso(champ(l, 'Date')) === dateSoiree)
-    let registre = ONGLET_INSCRIPTIONS_OS
-
-    if (!source) {
-      source = lignes(ONGLET_EVENEMENTS).find(
-        (l) =>
-          versDateIso(champ(l, 'Date')) === dateSoiree &&
-          (!titre || texte(champ(l, 'Titre')).toLowerCase() === titre.toLowerCase()),
-      )
-      registre = ONGLET_INSCRIPTIONS_EVENEMENTS
-    }
-
-    if (!source) return reponse({ ok: false, erreur: 'aucune ligne à cette date' })
-
-    // C'est l'intitulé qui regroupe les inscriptions dans le registre : si le
-    // site ne l'a pas transmis, on le reprend de la ligne d'agenda trouvée.
-    if (!titre) titre = texte(champ(source, 'Titre'))
-
-    // Se désinscrire depuis le site : on retire la ligne, et le compteur
-    // remonte d'autant. Une inscription venue de Discord n'est pas touchée —
-    // elle reviendrait à la relève suivante ; c'est sur Discord qu'on retire
-    // son « Intéressé·e ».
-    if (simplifier(donnees.action) === 'desinscription') {
-      return desinscrire(registre, dateSoiree, titre, pseudo, placesDe(champ(source, 'Places')))
-    }
-
-    const quota = placesDe(champ(source, 'Places'))
-
-    // « Complet » posé à la main dans la feuille : on refuse comme si le quota
-    // était atteint, même si le registre compte moins d'inscrits.
-    if (quota.complet) return reponse({ ok: false, complet: true, restantes: 0 })
-
-    const places = quota.places
-
-    // Une soirée mensuelle accueille même sans quota annoncé : on enregistre
-    // l'inscription, simplement sans compteur. Ailleurs, une colonne « Places »
-    // vide ferme les inscriptions — sans quoi ce point d'entrée public
-    // permettrait d'ajouter des lignes à n'importe quelle date de l'agenda.
-    const sansQuota = !places
-    if (sansQuota && registre !== ONGLET_INSCRIPTIONS_OS) {
-      return reponse({ ok: false, erreur: 'inscriptions fermées' })
-    }
-
-    const inscrits = lignes(registre).filter(
-      (i) => versDateIso(champ(i, 'Date')) === dateSoiree,
-    )
-
-    if (!sansQuota && inscrits.length >= places) {
-      return reponse({ ok: false, complet: true, restantes: 0 })
-    }
-
-    const maintenant = new Date()
-    const fuseau = Session.getScriptTimeZone()
-    const rang = inscrits.length + 1
-
-    // L'onglet n'existe que si la fonction « Places » est utilisée : on le crée
-    // au premier inscrit plutôt que de laisser une feuille vide.
-    onglet(SpreadsheetApp.getActiveSpreadsheet(), registre, COLONNES_INSCRIPTIONS).appendRow([
-      Utilities.formatDate(maintenant, fuseau, 'dd/MM/yyyy'),
-      Utilities.formatDate(maintenant, fuseau, 'HH:mm:ss'),
-      dateSoiree,
-      titre,
-      pseudo,
-      rang,
-      ORIGINE_SITE,
-    ])
-
-    return reponse({
-      ok: true,
-      rang: rang,
-      restantes: places ? Math.max(0, places - rang) : null,
-    })
-  } catch (erreur) {
-    return reponse({ ok: false, erreur: String(erreur) })
-  } finally {
-    verrou.releaseLock()
   }
 }
 

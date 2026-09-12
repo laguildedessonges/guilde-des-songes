@@ -221,9 +221,10 @@ function formatShortDate(iso) {
         lead="Les salons Discord permettent aux maîtres du jeu d'annoncer leurs parties. Les joueuses et joueurs peuvent s'y inscrire."
       >
         <p>
-          Les soirées mensuelles sont ouvertes à toutes et tous. Il n'est pas nécessaire
-          d'avoir un compte Discord pour s'y inscrire&nbsp;: le site vous propose un
-          formulaire. Indiquez simplement un pseudo personnel.
+          Les soirées mensuelles sont ouvertes à toutes et tous, sans compte Discord
+          nécessaire&nbsp;: écrivez-nous depuis la soirée qui vous intéresse. Nous
+          aimons échanger avant de vous inscrire — pour répondre à vos questions, et
+          vous accueillir comme il faut si c'est votre première partie.
         </p>
       </PageHeading>
 
@@ -297,7 +298,6 @@ function formatShortDate(iso) {
               :title="item.title"
               :date="item.date"
               :time="item.time"
-              @inscrit="chargerAgenda"
             />
             <a
               v-else-if="item.signup"
@@ -357,7 +357,6 @@ function formatShortDate(iso) {
               :title="modalEvent.title"
               :date="modalEvent.date"
               :time="modalEvent.time"
-              @inscrit="chargerAgenda"
             />
             <a
               v-else-if="modalEvent.signup"

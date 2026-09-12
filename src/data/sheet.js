@@ -9,10 +9,6 @@ import { typo } from '../typographie.js'
 export const SHEET_ENDPOINT =
   'https://script.google.com/macros/s/AKfycbwlwLChRf3RMtjSH23hC22chzlmPUiXu17E4J5iAK8vvTACFUQQqsvrc1dC5g54DEheBA/exec'
 
-// Les requêtes partent en `text/plain` : c'est une requête « simple », donc sans
-// pré-vol CORS — Apps Script ne répond pas aux requêtes OPTIONS.
-const ENTETES_SIMPLES = { 'Content-Type': 'text/plain;charset=utf-8' }
-
 // L'agenda part en même temps que le reste du site : `prechargerAgenda()` est
 // appelée au démarrage (main.js), bien avant qu'on ouvre la page Agenda. La
 // feuille Google met une à deux secondes à répondre ; pendant ce temps le
@@ -81,48 +77,6 @@ async function demanderAgenda() {
     return resultat.evenements.map(versEvenement)
   } catch {
     return null
-  }
-}
-
-/** Enregistre une inscription. Renvoie { ok, rang, restantes, complet }. */
-export async function postInscription({ soiree, dateSoiree, horaire, pseudo }) {
-  return envoyer({ soiree, dateSoiree, horaire, pseudo })
-}
-
-/**
- * Retire une inscription faite depuis le site.
- * Renvoie { ok, restantes }, ou { surDiscord: true } si la ligne vient de
- * Discord — c'est là-bas qu'il faut alors retirer son « Intéressé·e ».
- */
-export async function postDesinscription({ soiree, dateSoiree, pseudo }) {
-  return envoyer({ action: 'desinscription', soiree, dateSoiree, pseudo })
-}
-
-async function envoyer(donnees) {
-  const corps = JSON.stringify(donnees)
-
-  try {
-    const response = await fetch(SHEET_ENDPOINT, {
-      method: 'POST',
-      headers: ENTETES_SIMPLES,
-      body: corps,
-    })
-    return await response.json()
-  } catch {
-    // Selon le déploiement, le navigateur peut bloquer la lecture de la réponse
-    // alors que l'écriture a bien eu lieu. On renvoie donc en « aveugle » plutôt
-    // que d'annoncer un échec à tort — sans prétendre connaître le rang.
-    try {
-      await fetch(SHEET_ENDPOINT, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: ENTETES_SIMPLES,
-        body: corps,
-      })
-      return { ok: true, aveugle: true }
-    } catch {
-      return { ok: false }
-    }
   }
 }
 
