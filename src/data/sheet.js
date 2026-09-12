@@ -161,10 +161,12 @@ function versEvenement(ligne) {
   const complet =
     ligne.complet === true || /^complet\b/i.test(String(ligne.places || '').trim())
 
+  const kind = normaliserType(ligne.type)
+
   return {
     date: normaliserDate(ligne.date),
     time: typo(ligne.horaire),
-    kind: normaliserType(ligne.type),
+    kind: kind,
     title: typo(ligne.titre),
     game: typo(ligne.jeu),
     place: typo(ligne.lieu),
@@ -181,9 +183,14 @@ function versEvenement(ligne) {
     // les inscrits relevés sur l'événement Discord.
     //
     // Le formulaire du site, lui, ne s'ouvre qu'à défaut de lien Discord : là où
-    // la Guilde accueille sans passer par le serveur (les soirées mensuelles),
-    // et là seulement. Rien ne sert de proposer deux guichets pour une table.
-    form: places > 0 && !complet && !ligne.lien,
+    // la Guilde accueille sans passer par le serveur, et là seulement. Rien ne
+    // sert de proposer deux guichets pour une table.
+    //
+    // Une soirée mensuelle l'ouvre même sans places annoncées : elle n'a pas
+    // toujours de quota, mais elle accueille toujours — c'est le créneau par
+    // lequel on entre à la Guilde. Sans nombre de places, pas de compteur ;
+    // l'inscription est simplement enregistrée.
+    form: !complet && !ligne.lien && (places > 0 || kind === 'mensuelle'),
     signup: ligne.lien || undefined,
   }
 }

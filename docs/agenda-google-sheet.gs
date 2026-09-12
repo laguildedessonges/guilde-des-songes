@@ -126,9 +126,10 @@ const STATUT_A_VENIR = 'à venir'
 const PLACES_COMPLET = 'Complet'
 
 const AIDE_PLACES =
-  'À écrire à la main. Vide = ni formulaire ni compteur sur le site. Un nombre ' +
-  'ouvre les inscriptions et le site décompte ce qu\'il reste. « Complet » les ' +
-  'ferme, et le site affiche « Complet ».'
+  'À écrire à la main. Un nombre ouvre les inscriptions et le site décompte ce ' +
+  'qu\'il reste ; « Complet » les ferme. Vide : pas de compteur — les soirées ' +
+  'mensuelles restent ouvertes aux inscriptions, les autres lignes renvoient au ' +
+  'Discord ou n\'affichent rien.'
 
 const COLONNES_EVENEMENTS = [
   {
@@ -1344,13 +1345,21 @@ function doPost(e) {
     if (quota.complet) return reponse({ ok: false, complet: true, restantes: 0 })
 
     const places = quota.places
-    if (!places) return reponse({ ok: false, erreur: 'inscriptions fermées' })
+
+    // Une soirée mensuelle accueille même sans quota annoncé : on enregistre
+    // l'inscription, simplement sans compteur. Ailleurs, une colonne « Places »
+    // vide ferme les inscriptions — sans quoi ce point d'entrée public
+    // permettrait d'ajouter des lignes à n'importe quelle date de l'agenda.
+    const sansQuota = !places
+    if (sansQuota && registre !== ONGLET_INSCRIPTIONS_OS) {
+      return reponse({ ok: false, erreur: 'inscriptions fermées' })
+    }
 
     const inscrits = lignes(registre).filter(
       (i) => versDateIso(champ(i, 'Date')) === dateSoiree,
     )
 
-    if (inscrits.length >= places) {
+    if (!sansQuota && inscrits.length >= places) {
       return reponse({ ok: false, complet: true, restantes: 0 })
     }
 
