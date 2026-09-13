@@ -97,9 +97,10 @@ const ONGLET_INSCRIPTIONS_OS = 'Inscriptions OS'
 const ONGLET_INSCRIPTIONS_EVENEMENTS = 'Inscriptions événements'
 const ONGLET_ARCHIVES = 'Archives'
 
-// Lien avec les événements Discord. Le jeton du bot ne vit pas dans ce fichier :
-// il se colle dans Paramètres du projet › Propriétés du script, sous ce nom.
-const CLE_JETON_DISCORD = 'DISCORD_TOKEN'
+// Lien avec les événements Discord. La feuille n'interroge pas Discord : elle
+// lit le relevé publié par le dépôt du site (voir synchroniserDiscord).
+const URL_RELEVE_DISCORD =
+  'https://raw.githubusercontent.com/stillebx/guilde-des-songes/donnees/interesses.json'
 const ORIGINE_DISCORD = 'Discord'
 
 // Types de l'onglet « Événements ». Les soirées mensuelles ont leur propre
@@ -789,19 +790,29 @@ function estTerminee(ligne, date, aujourdhui) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Reporte dans le registre les personnes qui ont cliqué « Intéressé·e » sur
- * l'événement Discord d'une ligne d'agenda. Elles y deviennent des inscriptions
- * comme les autres, marquées « Discord » : le site décompte donc les places et
+ * Relève des « Intéressé·e » sur les événements Discord.
+ *
+ * Pour chaque ligne à venir des deux agendas qui porte un lien d'événement
+ * Discord, les personnes ayant cliqué « Intéressé·e » sont reportées dans le
+ * registre d'inscriptions correspondant (origine « Discord »). Un pseudo
+ * disparu de Discord est retiré ; une inscription saisie à la main n'est
+ * jamais touchée. Le compteur de places du site en tient compte, et une ligne
  * bascule sur « Complet » sans rien savoir de Discord.
  *
- * Sans jeton de bot enregistré, la fonction ne fait rien — le reste du script
- * continue de tourner normalement.
+ * La feuille ne parle pas à Discord elle-même : Discord bloque à l'entrée
+ * (code 40333) tout appel de bot venu des serveurs de Google, d'où s'exécute
+ * Apps Script. C'est donc le dépôt du site qui interroge Discord, chez GitHub,
+ * toutes les quinze minutes (workflow « Relever les intéressés Discord »), et
+ * publie le résultat dans un fichier que cette fonction lit.
  *
- * Mise en place, une fois :
+ * Mise en place, une fois, côté GitHub — rien à régler ici :
  * 1. discord.com/developers › New Application › Bot › Reset Token, copier.
- * 2. Inviter le bot sur le serveur de la Guilde (il n'a besoin que de lire).
- * 3. Apps Script › Paramètres du projet › Propriétés du script › Ajouter :
- *    nom `DISCORD_TOKEN`, valeur le jeton. Il ne doit jamais être écrit ici.
+ * 2. Inviter le bot sur le serveur de la Guilde, avec le seul droit « Voir les
+ *    salons ».
+ * 3. Dépôt GitHub › Settings › Secrets and variables › Actions › New repository
+ *    secret : nom `DISCORD_TOKEN`, valeur le jeton. Puis onglet Actions ›
+ *    « Relever les intéressés Discord » › Run workflow, pour un premier relevé.
+ * « Guilde › Vérifier le lien avec Discord » dit ensuite où on en est.
  *
  * À la Guilde, cliquer « Intéressé·e » vaut inscription : c'est la convention
  * de l'association, et c'est ce qui rend ce décompte fiable. Ailleurs, ce
@@ -809,8 +820,8 @@ function estTerminee(ligne, date, aujourdhui) {
  * trompeur. À vérifier avant de reprendre ce script pour un autre serveur.
  */
 function synchroniserDiscord() {
-  const jeton = PropertiesService.getScriptProperties().getProperty(CLE_JETON_DISCORD)
-  if (!jeton) return
+  const releve = releveDiscord()
+  if (!releve) return // relevé injoignable : on ne touche à rien
 
   const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
 
@@ -830,10 +841,14 @@ function synchroniserDiscord() {
       // Rien à suivre sur une date passée : le registre garde son dernier état.
       if (!date || !titre || !ids || date < aujourdhui) return
 
-      const pseudos = interessesDiscord(ids, jeton)
-      if (pseudos === null) return // appel en échec : on ne touche à rien
+      // Absent du relevé (événement terminé ou annulé, lien erroné, autre
+      // serveur) : on ne touche à rien. « Absent » et « personne » ne veulent
+      // pas dire la même chose — il ne faut surtout pas conclure que tout le
+      // monde s'est désinscrit.
+      const evenement = releve.evenements[ids.evenement]
+      if (!evenement) return
 
-      reporterInteresses(agenda.registre, date, titre, pseudos)
+      reporterInteresses(agenda.registre, date, titre, evenement.interesses || [])
     })
   })
 }
@@ -845,43 +860,21 @@ function identifiantsEvenementDiscord(lien) {
 }
 
 /**
- * Pseudos des personnes intéressées, ou `null` si Discord n'a pas répondu.
- * `null` et « personne » ne veulent pas dire la même chose : sur un appel
- * raté, il ne faut surtout pas conclure que tout le monde s'est désinscrit.
+ * Le dernier relevé publié par GitHub — `{ releveLe, serveur, evenements }` —
+ * ou `null` s'il est injoignable ou illisible. L'horodatage en query évite
+ * de recevoir une copie en cache vieille de quelques minutes.
  */
-function interessesDiscord(ids, jeton) {
-  const pseudos = []
-  let apres = ''
-
-  // L'API renvoie 100 personnes au plus par appel : on déroule.
-  for (let page = 0; page < 10; page++) {
-    const url =
-      `https://discord.com/api/v10/guilds/${ids.serveur}/scheduled-events/${ids.evenement}` +
-      `/users?limit=100&with_member=true${apres ? `&after=${apres}` : ''}`
-
-    const reponse = UrlFetchApp.fetch(url, {
-      method: 'get',
-      headers: { Authorization: `Bot ${jeton}` },
-      muteHttpExceptions: true,
-    })
-
-    if (reponse.getResponseCode() !== 200) return null
-
-    const lot = JSON.parse(reponse.getContentText())
-    if (!lot.length) break
-
-    lot.forEach(function (entree) {
-      const utilisateur = entree.user || {}
-      const membre = entree.member || {}
-      // Le surnom sur le serveur d'abord : c'est sous ce nom qu'on se connaît.
-      pseudos.push(texte(membre.nick || utilisateur.global_name || utilisateur.username))
-    })
-
-    apres = lot[lot.length - 1].user ? lot[lot.length - 1].user.id : ''
-    if (lot.length < 100 || !apres) break
+function releveDiscord() {
+  const reponse = UrlFetchApp.fetch(`${URL_RELEVE_DISCORD}?t=${Date.now()}`, {
+    muteHttpExceptions: true,
+  })
+  if (reponse.getResponseCode() !== 200) return null
+  try {
+    const releve = JSON.parse(reponse.getContentText())
+    return releve && releve.evenements ? releve : null
+  } catch (erreur) {
+    return null
   }
-
-  return pseudos.filter(function (p) { return p })
 }
 
 /**
@@ -947,28 +940,56 @@ function reporterInteresses(registre, date, titre, pseudos) {
 }
 
 /**
- * Contrôle de l'installation Discord, à lancer depuis le menu « Guilde ».
- * Affiche ce qui va et ce qui manque, plutôt que de laisser deviner pourquoi
- * aucun pseudo ne remonte.
+ * « Guilde › Vérifier le lien avec Discord » : le relevé GitHub est-il là, est-il
+ * frais, et couvre-t-il chaque ligne à venir qui porte un lien d'événement ?
  */
 function verifierDiscord() {
   const messages = []
-  const jeton = PropertiesService.getScriptProperties().getProperty(CLE_JETON_DISCORD)
 
-  if (!jeton) {
+  // 1. Le relevé publié par GitHub.
+  const reponse = UrlFetchApp.fetch(`${URL_RELEVE_DISCORD}?t=${Date.now()}`, {
+    muteHttpExceptions: true,
+  })
+  if (reponse.getResponseCode() !== 200) {
     messages.push(
-      `✗ Aucun jeton enregistré.\n` +
-        `  Paramètres du projet › Propriétés du script › Ajouter,\n` +
-        `  nom : ${CLE_JETON_DISCORD}`,
+      `✗ Relevé Discord introuvable (HTTP ${reponse.getResponseCode()}).\n` +
+        '  La tâche GitHub « Relever les intéressés Discord » n’a sans doute\n' +
+        '  jamais tourné : dépôt › onglet Actions › Run workflow. Si elle est\n' +
+        '  en rouge, ouvrir le journal — le plus souvent, le secret\n' +
+        '  DISCORD_TOKEN manque ou le bot n’est pas invité sur le serveur.',
     )
     return afficher(messages)
   }
-  messages.push('✓ Jeton enregistré.')
 
-  // Les lignes à venir qui portent un lien d'événement Discord.
+  let releve = null
+  try {
+    releve = JSON.parse(reponse.getContentText())
+  } catch (erreur) {
+    releve = null
+  }
+  if (!releve || !releve.evenements) {
+    messages.push('✗ Relevé Discord illisible : le fichier publié n’a pas la forme attendue.')
+    return afficher(messages)
+  }
+
+  // 2. Sa fraîcheur : la tâche passe toutes les 15 minutes, avec parfois du retard.
+  const age = Math.round((Date.now() - new Date(releve.releveLe).getTime()) / 60000)
+  const nbEvenements = Object.keys(releve.evenements).length
+  if (isNaN(age) || age > 90) {
+    messages.push(
+      `✗ Dernier relevé il y a ${isNaN(age) ? '?' : age} min : la tâche GitHub ne tourne plus.\n` +
+        '  Dépôt › onglet Actions : GitHub suspend les tâches planifiées d’un\n' +
+        '  dépôt resté 60 jours sans activité — un clic « Enable » les relance.',
+    )
+  } else {
+    messages.push(
+      `✓ Relevé d’il y a ${age} min : ${nbEvenements} événement(s) à venir sur Discord.`,
+    )
+  }
+
+  // 3. Les lignes à venir qui portent un lien d'événement Discord.
   const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
   const cibles = []
-
   ;[ONGLET_EVENEMENTS, ONGLET_MENSUELLES].forEach(function (nom) {
     lignes(nom).forEach(function (l) {
       const date = versDateIso(champ(l, 'Date'))
@@ -984,24 +1005,30 @@ function verifierDiscord() {
     )
     return afficher(messages)
   }
-  messages.push(`✓ ${cibles.length} ligne(s) à venir avec un lien d’événement.`)
 
-  // Un seul appel réel : de quoi distinguer un jeton refusé d'un bot absent.
-  const essai = cibles[0]
-  const pseudos = interessesDiscord(essai.ids, jeton)
-
-  if (pseudos === null) {
+  // 4. Chaque ligne est-elle couverte par le relevé ?
+  let manquantes = 0
+  cibles.forEach(function (c) {
+    const evenement = releve.evenements[c.ids.evenement]
+    if (evenement) {
+      messages.push(`✓ « ${c.titre} » : ${(evenement.interesses || []).length} intéressé·e(s).`)
+      return
+    }
+    manquantes++
+    const autreServeur = releve.serveur && c.ids.serveur !== releve.serveur
     messages.push(
-      `✗ Discord refuse la lecture de « ${essai.titre} ».\n` +
-        '  Causes habituelles : le bot n’a pas été invité sur le serveur,\n' +
-        '  le jeton a été régénéré depuis, ou le lien ne pointe pas vers un\n' +
-        '  événement de ce serveur.',
+      `✗ « ${c.titre} » : absent du relevé — ` +
+        (autreServeur
+          ? `le lien pointe vers un autre serveur (${c.ids.serveur}).`
+          : 'événement terminé ou annulé, ou lien erroné.'),
     )
-    return afficher(messages)
-  }
+  })
 
-  messages.push(`✓ Lecture réussie : ${pseudos.length} intéressé·e(s) sur « ${essai.titre} ».`)
-  messages.push('\nTout est en place. La relève tourne toutes les 15 minutes.')
+  messages.push(
+    manquantes
+      ? '\nLa relève ignore les lignes en ✗ et continue pour les autres.'
+      : '\nTout est en place. La relève tourne toutes les 15 minutes.',
+  )
   return afficher(messages)
 }
 
