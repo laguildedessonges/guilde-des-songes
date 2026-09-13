@@ -129,8 +129,8 @@ import IconGlyph from './IconGlyph.vue'
 .about__value-icon {
   color: var(--accent);
   font-size: 1.25rem;
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   display: grid;
   place-items: center;
   border-radius: 50%;

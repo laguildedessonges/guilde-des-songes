@@ -84,7 +84,7 @@ function urlLogo(chemin) {
 }
 
 .footer__logo {
-  height: 60px;
+  height: 3.75rem;
   width: auto;
 }
 
@@ -123,7 +123,7 @@ function urlLogo(chemin) {
   display: block;
   /* 36 px : en dessous, la ligne « LE DÉPARTEMENT » du logo Côte-d'Or n'est
      plus lisible. C'est l'opacité, pas la taille, qui les met en retrait. */
-  height: 36px;
+  height: 2.25rem;
   width: auto;
   opacity: 0.55;
   transition: opacity 0.25s ease;
@@ -164,7 +164,7 @@ function urlLogo(chemin) {
   }
 
   .footer__logo {
-    height: 42px;
+    height: 2.625rem;
   }
 
   .footer__socials {
@@ -173,7 +173,7 @@ function urlLogo(chemin) {
 
   /* Encore plus petits en mobile : la bande doit rester basse. */
   .footer__soutien img {
-    height: 26px;
+    height: 1.625rem;
   }
 }
 </style>

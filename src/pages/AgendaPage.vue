@@ -461,8 +461,8 @@ function formatShortDate(iso) {
 }
 
 .legend__dot {
-  width: 12px;
-  height: 12px;
+  width: 0.75rem;
+  height: 0.75rem;
   border-radius: 50%;
 }
 
@@ -479,7 +479,7 @@ function formatShortDate(iso) {
 }
 
 .details--compacts {
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(18.75rem, 100%), 1fr));
   align-items: stretch;
 }
 
@@ -566,7 +566,7 @@ function formatShortDate(iso) {
 /* Le formulaire garde une largeur confortable sans s'étirer sur tout le cadre. */
 .detail--fenetre :deep(.signup),
 .detail--fenetre :deep(.signup__done) {
-  width: min(440px, 100%);
+  width: min(27.5rem, 100%);
 }
 
 .detail__kind {
@@ -674,8 +674,8 @@ function formatShortDate(iso) {
 }
 
 .upcoming__arrow {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   display: grid;
   place-items: center;
   border: none;
@@ -716,7 +716,7 @@ function formatShortDate(iso) {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(16.25rem, 100%), 1fr));
   gap: 1.25rem;
 }
 

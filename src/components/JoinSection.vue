@@ -75,7 +75,7 @@ const memberships = [
    leur hauteur quand elles s'empilent en mobile. */
 .join__channels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(17.5rem, 100%), 1fr));
   grid-auto-rows: 1fr;
   gap: 1.5rem;
 }
@@ -101,8 +101,8 @@ const memberships = [
 .join__icon {
   color: var(--accent);
   font-size: 1.6rem;
-  width: 56px;
-  height: 56px;
+  width: 3.5rem;
+  height: 3.5rem;
   display: grid;
   place-items: center;
   border-radius: 50%;

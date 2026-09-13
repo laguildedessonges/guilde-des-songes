@@ -68,7 +68,7 @@ function avantages(partner) {
 <style scoped>
 .partners {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(16.25rem, 100%), 1fr));
   gap: 1.5rem;
 }
 
@@ -87,13 +87,13 @@ function avantages(partner) {
   }
 
   .partners .partner__icon {
-    width: 52px;
-    height: 52px;
+    width: 3.25rem;
+    height: 3.25rem;
     margin-bottom: 0.7rem;
   }
 
   .partners .partner__foot {
-    min-height: 38px;
+    min-height: 2.375rem;
     margin-top: 0.5rem;
   }
 }
@@ -120,8 +120,8 @@ function avantages(partner) {
 .partner__icon {
   color: var(--accent);
   font-size: 1.7rem;
-  width: 60px;
-  height: 60px;
+  width: 3.75rem;
+  height: 3.75rem;
   flex: none;
   display: grid;
   place-items: center;
@@ -165,7 +165,7 @@ function avantages(partner) {
    restent alignées d'une carte à l'autre. */
 .partner__foot {
   flex: none;
-  min-height: 42px;
+  min-height: 2.625rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;

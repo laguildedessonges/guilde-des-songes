@@ -178,7 +178,7 @@ watch(() => [route.path, route.hash], closeAll)
 }
 
 .header__logo {
-  height: 60px;
+  height: 3.75rem;
   width: auto;
 }
 
@@ -239,7 +239,7 @@ watch(() => [route.path, route.hash], closeAll)
   transform: translateY(-6px);
   display: grid;
   gap: 0.2rem;
-  min-width: 210px;
+  min-width: 13.125rem;
   padding: 0.6rem;
   border-radius: var(--radius);
   background: var(--bg);
@@ -393,8 +393,8 @@ watch(() => [route.path, route.hash], closeAll)
   .header__burger {
     display: grid;
     place-items: center;
-    width: 38px;
-    height: 38px;
+    width: 2.375rem;
+    height: 2.375rem;
     padding: 0;
     border-radius: 50%;
   }

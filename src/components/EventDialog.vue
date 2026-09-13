@@ -82,8 +82,8 @@ watch(
 
 /* Cadre de taille fixe : identique quelle que soit la longueur du texte. */
 .dialog__panneau {
-  width: min(620px, 100%);
-  height: min(70vh, 620px);
+  width: min(38.75rem, 100%);
+  height: min(70vh, 38.75rem);
   display: flex;
   flex-direction: column;
   border-radius: var(--radius);
@@ -107,8 +107,8 @@ watch(
 }
 
 .dialog__fermer {
-  width: 38px;
-  height: 38px;
+  width: 2.375rem;
+  height: 2.375rem;
   flex: none;
   display: grid;
   place-items: center;
@@ -149,7 +149,7 @@ watch(
   }
 
   .dialog__panneau {
-    height: min(80vh, 620px);
+    height: min(80vh, 38.75rem);
   }
 
   .dialog__entete {

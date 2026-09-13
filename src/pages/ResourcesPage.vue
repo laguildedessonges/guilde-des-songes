@@ -57,7 +57,7 @@ import { typo } from '../typographie.js'
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(18.75rem, 100%), 1fr));
   gap: 1.5rem;
 }
 
@@ -97,8 +97,8 @@ import { typo } from '../typographie.js'
 
 .resource__icon {
   flex: none;
-  width: 48px;
-  height: 48px;
+  width: 3rem;
+  height: 3rem;
   display: grid;
   place-items: center;
   border-radius: 50%;

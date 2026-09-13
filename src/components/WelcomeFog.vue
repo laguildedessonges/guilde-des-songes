@@ -34,12 +34,22 @@ uniform vec3 uColor;
 // ~0.04 UV/s). Augmenter pour accélérer toute la brume.
 const float SPEED = 1.5;
 
+// Hachage sans sinus. Le classique fract(sin(dot(p, …)) * 43758.5) casse sur
+// certains pilotes — Chrome sous Windows (ANGLE / Direct3D) notamment, qui
+// calcule mal sin() sur de grands arguments : chaque case du quadrillage du
+// bruit ressortait alors comme un rectangle net dans la brume. Formule de
+// Dave Hoskins (hash12), stable en simple précision.
 float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
 }
 
 float noise(vec2 p) {
-  vec2 i = floor(p);
+  // Les coordonnées de case sont repliées (période 289 cases) : la dérive dans
+  // le temps ne fait plus grossir les nombres passés au hachage, et la brume
+  // reste identique quel que soit le moment où on ouvre la page.
+  vec2 i = mod(floor(p), 289.0);
   vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(

@@ -28,8 +28,8 @@
   --font-display: 'EB Garamond', 'Garamond', serif;
   --font-body: 'EB Garamond', 'Garamond', serif;
 
-  --radius: 18px;
-  --content-width: 1060px;
+  --radius: 1.125rem;
+  --content-width: 66.25rem;
   /* Échelle typographique partagée : mêmes tailles pour le titre du hero, les
      titres de sections (« Qui sommes-nous »…) et les titres des autres pages,
      et une taille unique pour toutes les phrases d'accroche. */
@@ -48,7 +48,7 @@
      famille chromatique sans se confondre avec une partie. */
   --kind-evenement: #6f5566;
   /* Hauteur commune des bandes entête et pied de page */
-  --band-height: 92px;
+  --band-height: 5.75rem;
   /* Espacement uniforme entre les groupes (logo, menus, pastilles) des deux bandes */
   --band-gap: clamp(1.5rem, 4vw, 3.25rem);
 }
@@ -113,6 +113,12 @@ html {
   scroll-behavior: smooth;
   /* Fond porté par <html> : la couche de brume (z-index -1) reste visible. */
   background: var(--bg);
+  /* Le site grandit avec l'écran : toutes les dimensions du gabarit (colonne,
+     bandes, cartes, pastilles, corps du texte) sont en rem ; au-delà de
+     ~1780 px de large, la taille de base suit la fenêtre (0,9 % de sa largeur)
+     et l'ensemble s'agrandit en proportion, sans laisser de vastes marges de
+     brume sur les grands moniteurs. Plafonné pour ne pas devenir démesuré. */
+  font-size: clamp(16px, 0.9vw, 28px);
 }
 
 /* Firefox uniquement : curseur de défilement rouge sur piste claire.
@@ -126,8 +132,8 @@ html {
 
 /* Navigateurs WebKit/Chromium : curseur rouge arrondi, piste dans le fond du site */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 ::-webkit-scrollbar-track {
@@ -149,7 +155,7 @@ body {
   background: transparent;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 19px;
+  font-size: 1.1875rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -297,8 +303,8 @@ body {
 
 /* Boutons ronds néomorphiques des réseaux (entête, pied de page, menu mobile) */
 .social-btn {
-  width: 38px;
-  height: 38px;
+  width: 2.375rem;
+  height: 2.375rem;
   display: grid;
   place-items: center;
   /* `border`/`background` neutralisés : certaines pastilles sont des <button>

@@ -50,7 +50,7 @@ import IconGlyph from './IconGlyph.vue'
 <style scoped>
 .practical {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(16.25rem, 100%), 1fr));
   gap: 1.5rem;
   margin-top: 2rem;
 }
@@ -71,8 +71,8 @@ import IconGlyph from './IconGlyph.vue'
 .practical__icon {
   color: var(--accent);
   font-size: 1.7rem;
-  width: 60px;
-  height: 60px;
+  width: 3.75rem;
+  height: 3.75rem;
   display: grid;
   place-items: center;
   border-radius: 50%;
