@@ -557,7 +557,8 @@ function reglerMensuelles(feuille) {
  * Tourne chaque nuit, et à la demande par le menu « Guilde ».
  */
 function archiver() {
-  synchroniserDiscord()
+  // Appelée par le rangement : pas de compte rendu à l'écran, comme depuis le déclencheur.
+  synchroniserDiscord({ source: 'rangement' })
 
   const classeur = SpreadsheetApp.getActiveSpreadsheet()
   const evenements = classeur.getSheetByName(ONGLET_EVENEMENTS)
@@ -819,11 +820,30 @@ function estTerminee(ligne, date, aujourdhui) {
  * bouton dit souvent la simple curiosité — un décompte fondé dessus y serait
  * trompeur. À vérifier avant de reprendre ce script pour un autre serveur.
  */
-function synchroniserDiscord() {
+function synchroniserDiscord(declencheur) {
+  // Lancée par le déclencheur horaire, la fonction reçoit un objet ; depuis le
+  // menu, rien. Le compte rendu ne s'affiche que depuis le menu.
+  const depuisMenu = !declencheur
+  const messages = []
+
   const releve = releveDiscord()
-  if (!releve) return // relevé injoignable : on ne touche à rien
+  if (!releve) {
+    // Relevé injoignable : on ne touche à rien.
+    if (depuisMenu) {
+      afficher(
+        [
+          '✗ Relevé Discord injoignable : rien n’a été modifié.',
+          '  « Guilde › Vérifier le lien avec Discord » dit pourquoi.',
+        ],
+        'Relève des inscrits Discord',
+      )
+    }
+    return
+  }
 
   const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
+  let ajoutes = 0
+  let retires = 0
 
   // Les deux agendas : une soirée mensuelle peut elle aussi avoir son événement
   // Discord, et ses intéressés doivent figurer au registre comme les autres.
@@ -833,24 +853,66 @@ function synchroniserDiscord() {
   ]
 
   agendas.forEach(function (agenda) {
+    // Le registre est lu une seule fois pour toutes les lignes de l'agenda, et
+    // écrit une seule fois à la fin : un appel à Google par ligne ajoutée
+    // prenait une bonne seconde, et la relève traînait plusieurs minutes.
+    const registre = ouvrirRegistre(agenda.registre)
+    const aAjouter = []
+    const aRetirer = []
+
     lignes(agenda.onglet).forEach(function (l) {
       const date = versDateIso(champ(l, 'Date'))
       const titre = texte(champ(l, 'Titre'))
-      const ids = identifiantsEvenementDiscord(champ(l, 'Lien Discord'))
+      const lien = texte(champ(l, 'Lien Discord'))
+      const ids = identifiantsEvenementDiscord(lien)
 
       // Rien à suivre sur une date passée : le registre garde son dernier état.
-      if (!date || !titre || !ids || date < aujourdhui) return
+      if (!date || !titre || date < aujourdhui) return
+
+      const etiquette = `« ${titre} » (${date.slice(8, 10)}/${date.slice(5, 7)})`
+
+      if (!ids) {
+        if (lien) messages.push(`· ${etiquette} : le lien n’est pas celui d’un événement Discord.`)
+        else messages.push(`· ${etiquette} : pas de lien Discord.`)
+        return
+      }
 
       // Absent du relevé (événement terminé ou annulé, lien erroné, autre
       // serveur) : on ne touche à rien. « Absent » et « personne » ne veulent
       // pas dire la même chose — il ne faut surtout pas conclure que tout le
       // monde s'est désinscrit.
       const evenement = releve.evenements[ids.evenement]
-      if (!evenement) return
+      if (!evenement) {
+        messages.push(`· ${etiquette} : événement absent de Discord, registre laissé tel quel.`)
+        return
+      }
 
-      reporterInteresses(agenda.registre, date, titre, evenement.interesses || [])
+      const pseudos = evenement.interesses || []
+      if (!registre) {
+        messages.push(`✗ ${etiquette} : l’onglet « ${agenda.registre} » n’a pas les colonnes attendues (relancer initialiser).`)
+        return
+      }
+      const bilan = comparerInteresses(registre, date, titre, pseudos)
+      bilan.ajouter.forEach(function (ligne) { aAjouter.push(ligne) })
+      bilan.retirer.forEach(function (numero) { aRetirer.push(numero) })
+      ajoutes += bilan.ajouter.length
+      retires += bilan.retirer.length
+      messages.push(
+        `✓ ${etiquette} : ${pseudos.length} intéressé·e(s) sur Discord, ` +
+          `${bilan.ajouter.length} ajouté·e(s), ${bilan.retirer.length} retiré·e(s).`,
+      )
     })
+
+    if (registre) appliquerAuRegistre(registre.feuille, aAjouter, aRetirer)
   })
+
+  if (depuisMenu) {
+    messages.push(
+      `\n${ajoutes} inscription(s) ajoutée(s), ${retires} retirée(s). ` +
+        `Relevé Discord d’il y a ${Math.round((Date.now() - new Date(releve.releveLe).getTime()) / 60000)} min.`,
+    )
+    afficher(messages, 'Relève des inscrits Discord')
+  }
 }
 
 /** « https://discord.com/events/123/456 » → { serveur: '123', evenement: '456' }. */
@@ -878,56 +940,66 @@ function releveDiscord() {
 }
 
 /**
- * Met le registre au diapason de Discord pour une ligne d'agenda : ajoute les
- * pseudos apparus, retire les lignes « Discord » de ceux qui se sont rétractés.
- * Une inscription venue du site n'est jamais touchée, et un pseudo déjà présent
- * n'est pas ajouté deux fois — c'est ce qui évite le double comptage quand
- * quelqu'un s'inscrit des deux côtés.
+ * Un registre d'inscriptions prêt à être comparé : la feuille, toutes ses
+ * valeurs, et la position des colonnes utiles. `null` si les colonnes
+ * attendues manquent. La feuille est créée si elle n'existe pas encore.
  */
-function reporterInteresses(registre, date, titre, pseudos) {
+function ouvrirRegistre(nom) {
   const classeur = SpreadsheetApp.getActiveSpreadsheet()
-  const feuille = onglet(classeur, registre, COLONNES_INSCRIPTIONS)
+  const feuille = classeur.getSheetByName(nom) || onglet(classeur, nom, COLONNES_INSCRIPTIONS)
   const valeurs = feuille.getDataRange().getValues()
   const entetes = valeurs[0].map((e) => cleEntete(texte(e)))
 
-  const colonne = (nom) => entetes.indexOf(cleEntete(nom))
-  const iDate = colonne('Date')
-  const iTitre = colonne('Intitulé')
+  const colonne = (n) => entetes.indexOf(cleEntete(n))
   const iPseudo = colonne('Pseudo') !== -1 ? colonne('Pseudo') : colonne('Pseudo Discord')
-  const iOrigine = colonne('Origine')
-  if (iDate === -1 || iPseudo === -1 || iOrigine === -1) return
+  const indices = { date: colonne('Date'), titre: colonne('Intitulé'), pseudo: iPseudo, origine: colonne('Origine') }
+  if (indices.date === -1 || indices.pseudo === -1 || indices.origine === -1) return null
+
+  return { feuille: feuille, valeurs: valeurs, indices: indices }
+}
+
+/**
+ * Compare les intéressés Discord d'une ligne d'agenda au registre déjà lu :
+ * les pseudos apparus deviennent des lignes à ajouter, les lignes « Discord »
+ * de ceux qui se sont rétractés des numéros de ligne à retirer. Une
+ * inscription venue du site n'est jamais touchée, et un pseudo déjà présent
+ * n'est pas ajouté deux fois — c'est ce qui évite le double comptage quand
+ * quelqu'un s'inscrit des deux côtés. Rien n'est écrit ici.
+ */
+function comparerInteresses(registre, date, titre, pseudos) {
+  const i = registre.indices
+  const voulus = pseudos.map((p) => p.toLowerCase())
 
   const memeSoiree = function (ligne) {
     if (estBandeau(ligne[0])) return false
-    if (versDateIso(ligne[iDate]) !== date) return false
-    const intitule = texte(ligne[iTitre])
+    if (versDateIso(ligne[i.date]) !== date) return false
+    const intitule = texte(ligne[i.titre])
     return !intitule || intitule.toLowerCase() === titre.toLowerCase()
   }
 
   const presents = []
-  const aRetirer = []
+  const retirer = []
 
-  valeurs.slice(1).forEach(function (ligne, index) {
+  registre.valeurs.slice(1).forEach(function (ligne, index) {
     if (!memeSoiree(ligne)) return
-    const pseudo = texte(ligne[iPseudo])
-    presents.push(pseudo.toLowerCase())
-
-    const venuDeDiscord = texte(ligne[iOrigine]) === ORIGINE_DISCORD
-    if (venuDeDiscord && pseudos.map((p) => p.toLowerCase()).indexOf(pseudo.toLowerCase()) === -1) {
-      aRetirer.push(index + 2)
+    const pseudo = texte(ligne[i.pseudo]).toLowerCase()
+    const venuDeDiscord = texte(ligne[i.origine]) === ORIGINE_DISCORD
+    if (venuDeDiscord && voulus.indexOf(pseudo) === -1) {
+      retirer.push(index + 2)
+      return
     }
+    presents.push(pseudo)
   })
 
-  // De bas en haut : supprimer une ligne décale toutes celles d'en dessous.
-  aRetirer.reverse().forEach(function (ligne) { feuille.deleteRow(ligne) })
-
   const maintenant = new Date()
-    let rang = presents.length - aRetirer.length
+  let rang = presents.length
+  const ajouter = []
 
   pseudos.forEach(function (pseudo) {
     if (presents.indexOf(pseudo.toLowerCase()) !== -1) return
+    presents.push(pseudo.toLowerCase())
     rang++
-    feuille.appendRow([
+    ajouter.push([
       Utilities.formatDate(maintenant, fuseau(), 'dd/MM/yyyy'),
       Utilities.formatDate(maintenant, fuseau(), 'HH:mm:ss'),
       date,
@@ -937,6 +1009,25 @@ function reporterInteresses(registre, date, titre, pseudos) {
       ORIGINE_DISCORD,
     ])
   })
+
+  return { ajouter: ajouter, retirer: retirer }
+}
+
+/**
+ * Écrit d'un coup ce que la comparaison a décidé : les retraits d'abord, de
+ * bas en haut (supprimer une ligne décale celles d'en dessous), puis toutes
+ * les nouvelles lignes en un seul bloc sous la dernière occupée.
+ */
+function appliquerAuRegistre(feuille, aAjouter, aRetirer) {
+  aRetirer
+    .slice()
+    .sort((a, b) => b - a)
+    .forEach(function (numero) { feuille.deleteRow(numero) })
+
+  if (!aAjouter.length) return
+  const depart = feuille.getLastRow() + 1
+  garantirLignes(feuille, depart + aAjouter.length - 1)
+  feuille.getRange(depart, 1, aAjouter.length, aAjouter[0].length).setValues(aAjouter)
 }
 
 /**
@@ -1008,9 +1099,11 @@ function verifierDiscord() {
 
   // 4. Chaque ligne est-elle couverte par le relevé ?
   let manquantes = 0
+  const couverts = {}
   cibles.forEach(function (c) {
     const evenement = releve.evenements[c.ids.evenement]
     if (evenement) {
+      couverts[c.ids.evenement] = true
       messages.push(`✓ « ${c.titre} » : ${(evenement.interesses || []).length} intéressé·e(s).`)
       return
     }
@@ -1024,19 +1117,43 @@ function verifierDiscord() {
     )
   })
 
+  // 5. Les événements Discord qu'aucune ligne ne relie : leurs intéressés ne
+  //    sont relevés nulle part tant que le lien n'est pas collé dans l'agenda.
+  Object.keys(releve.evenements).forEach(function (id) {
+    if (couverts[id]) return
+    const evenement = releve.evenements[id]
+    const debut = texte(evenement.debut).slice(0, 10)
+    messages.push(
+      `· Sur Discord, « ${evenement.nom} » (${debut.slice(8, 10)}/${debut.slice(5, 7)}, ` +
+        `${(evenement.interesses || []).length} intéressé·e(s)) n’est relié à aucune ligne : ` +
+        `coller https://discord.com/events/${releve.serveur}/${id} dans sa colonne « Lien Discord ».`,
+    )
+  })
+
+  // 6. La relève automatique est-elle programmée ? Elle s'installe avec
+  //    `initialiser` ; une feuille mise à jour sans le relancer n'en a pas.
+  const programmee = ScriptApp.getProjectTriggers().some(function (d) {
+    return d.getHandlerFunction() === 'synchroniserDiscord'
+  })
+  if (!programmee) {
+    installerSynchroDiscord()
+    messages.push('✓ Relève automatique programmée (elle ne l’était pas encore).')
+  }
+
   messages.push(
     manquantes
       ? '\nLa relève ignore les lignes en ✗ et continue pour les autres.'
       : '\nTout est en place. La relève tourne toutes les 15 minutes.',
   )
+  messages.push('Pour relever tout de suite : Guilde › Relever les inscrits Discord.')
   return afficher(messages)
 }
 
 /** Affiche un compte rendu, dans la feuille ou dans le journal d'exécution. */
-function afficher(messages) {
+function afficher(messages, titre) {
   const texte = messages.join('\n')
   try {
-    SpreadsheetApp.getUi().alert('Vérification Discord', texte, SpreadsheetApp.getUi().ButtonSet.OK)
+    SpreadsheetApp.getUi().alert(titre || 'Vérification Discord', texte, SpreadsheetApp.getUi().ButtonSet.OK)
   } catch (erreur) {
     // Lancée depuis l'éditeur, sans feuille ouverte : le journal fera l'affaire.
     Logger.log(texte)
