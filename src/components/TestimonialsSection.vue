@@ -12,7 +12,7 @@ const testimonials = [
   },
   {
     name: 'Jonathan',
-    role: 'PJ',
+    role: 'Joueur',
     quote:
       "Je me suis inscrit à la Guilde des Songes pour me permettre de rencontrer du monde et surmonter mon angoisse de la sociabilisation. Depuis 4 ans, j'ai rencontré de nombreuses personnes, ce qui m'a permis de reprendre confiance en moi, en m'éclatant autour d'une table de jeu dans une super ambiance.",
   },
