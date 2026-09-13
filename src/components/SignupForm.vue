@@ -111,7 +111,7 @@ function ecrire() {
 }
 
 .signup__input {
-  flex: 1 1 180px;
+  flex: 1 1 11.25rem;
   min-width: 0;
   padding: 0.6rem 1rem;
   border: none;

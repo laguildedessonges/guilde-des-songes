@@ -83,8 +83,8 @@ const testimonials = [
 .testimonial__icon {
   color: var(--accent);
   font-size: 1.5rem;
-  width: 52px;
-  height: 52px;
+  width: 3.25rem;
+  height: 3.25rem;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -135,8 +135,8 @@ const testimonials = [
   }
 
   .testimonial__icon {
-    width: 46px;
-    height: 46px;
+    width: 2.875rem;
+    height: 2.875rem;
     font-size: 1.35rem;
   }
 
