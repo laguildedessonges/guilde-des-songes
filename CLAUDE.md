@@ -30,6 +30,11 @@ réseaux) vient de l'ancien site.
   retombe sur les parties écrites dans `src/data/events.js`.
   Les parties passées disparaissent automatiquement. Le type `mensuelle` ouvre le
   formulaire d'inscription du site ; les autres renvoient au salon Discord.
+- **Intéressés Discord** : la feuille ne peut pas interroger Discord (bloqué depuis
+  les serveurs de Google, code 40333). Le workflow `.github/workflows/releve-discord.yml`
+  lance `scripts/releve-discord.mjs` toutes les 15 min et publie `interesses.json` sur
+  la branche `donnees`, que la feuille lit. Le jeton du bot est le secret GitHub
+  `DISCORD_TOKEN`, l'identifiant du serveur est dans le workflow.
 - **Gazette** : un fichier Markdown par numéro dans `src/gazette/` (front-matter
   `title` / `date` / `excerpt`). Déposer le fichier suffit : il est listé et publié.
 - **Partenaires** : `src/data/partners.js`.

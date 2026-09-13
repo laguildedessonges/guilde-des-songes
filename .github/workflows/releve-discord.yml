@@ -1,0 +1,64 @@
+# Toutes les quinze minutes, relève les « Intéressé·e » des événements Discord
+# de la Guilde et publie le résultat dans `interesses.json`, sur la branche
+# `donnees`. La feuille Google qui pilote l'agenda lit ce fichier : elle ne peut
+# pas interroger Discord elle-même (Discord bloque les appels de bot venus des
+# serveurs de Google, voir scripts/releve-discord.mjs).
+#
+# Mise en place, une fois : Settings › Secrets and variables › Actions › New
+# repository secret, nom DISCORD_TOKEN, valeur le jeton du bot (portail
+# développeurs Discord › onglet Bot › Reset Token). Le bot doit être invité sur
+# le serveur avec le seul droit « Voir les salons ».
+name: Relever les intéressés Discord
+
+on:
+  schedule:
+    # GitHub lance les tâches planifiées avec un peu de retard aux heures
+    # chargées : la relève arrive en pratique toutes les 15 à 25 minutes.
+    - cron: '*/15 * * * *'
+  # Et à la demande, depuis l'onglet Actions — utile pour vérifier la mise en place.
+  workflow_dispatch:
+
+# Le seul droit nécessaire : écrire la branche `donnees`.
+permissions:
+  contents: write
+
+# Jamais deux relevés en même temps ; le second attend.
+concurrency:
+  group: releve-discord
+  cancel-in-progress: false
+
+jobs:
+  relever:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Interroger Discord
+        run: node scripts/releve-discord.mjs interesses.json
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          # Le serveur Discord de la Guilde (le premier nombre des liens
+          # discord.com/events/<serveur>/<événement>).
+          DISCORD_SERVEUR: '1149036782881615964'
+
+      # La branche `donnees` ne contient que ce fichier, en un seul commit
+      # réécrit à chaque relevé : pas d'historique qui enfle, pas de bruit sur
+      # main, et aucun déploiement du site déclenché.
+      - name: Publier le relevé sur la branche donnees
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          mkdir donnees
+          cp interesses.json donnees/
+          cd donnees
+          git init -q -b donnees
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add interesses.json
+          git commit -q -m "Relevé Discord du $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" donnees
