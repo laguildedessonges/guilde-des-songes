@@ -112,12 +112,20 @@ async function mountShader(canvas) {
   const w = window.innerWidth
   const h = window.innerHeight
 
-  const renderer = new WebGLRenderer({
-    canvas,
-    antialias: false,
-    alpha: true,
-    premultipliedAlpha: false,
-  })
+  // Sans WebGL (navigateur ancien, accélération désactivée, mode privé de
+  // certains moteurs), three lève une erreur : on renonce à la brume et le
+  // site s'affiche normalement, sur son fond uni.
+  let renderer
+  try {
+    renderer = new WebGLRenderer({
+      canvas,
+      antialias: false,
+      alpha: true,
+      premultipliedAlpha: false,
+    })
+  } catch {
+    return null
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio ?? 1, 1.5))
   renderer.setSize(w, h, false)
   renderer.setClearColor(0x000000, 0)
