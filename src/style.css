@@ -159,7 +159,12 @@ body {
 #app {
   display: flex;
   flex-direction: column;
+  /* Toute la hauteur de la fenêtre, quel que soit le navigateur : sur mobile,
+     100vh compte la barre d'adresse rétractée (Safari iOS, Chrome Android) et
+     repousse le pied de page hors de l'écran visible sur les pages courtes ;
+     100dvh suit la hauteur réellement affichée. Le vh reste en repli. */
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 #app > main {
