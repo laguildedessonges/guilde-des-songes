@@ -67,16 +67,46 @@ export function rechargerAgenda() {
   })
 }
 
+// Google est parfois lent à réveiller le script, et renvoie même une erreur
+// passagère sous charge. Sans limite de temps, la page restait indéfiniment sur
+// « Chargement de l'agenda… » : mieux vaut renoncer et afficher le repli, quitte
+// à retenter une fois.
+// Dix secondes : Google met parfois trois à cinq secondes à réveiller le
+// script, il faut lui laisser cette marge — mais au-delà, le visiteur mérite
+// une réponse plutôt qu'un sablier.
+const DELAI_MAX_MS = 10000
+const ESSAIS = 2
+
 async function demanderAgenda() {
   if (!SHEET_ENDPOINT) return null
 
+  for (let essai = 0; essai < ESSAIS; essai++) {
+    const evenements = await demanderUneFois()
+    if (evenements) return evenements
+  }
+
+  return null
+}
+
+async function demanderUneFois() {
+  // `AbortController` coupe la requête au bout du délai : sans lui, `fetch`
+  // attend le bon vouloir du serveur, sans fin.
+  const abandon = new AbortController()
+  const minuterie = setTimeout(() => abandon.abort(), DELAI_MAX_MS)
+
   try {
-    const response = await fetch(SHEET_ENDPOINT, { method: 'GET' })
+    const response = await fetch(SHEET_ENDPOINT, { method: 'GET', signal: abandon.signal })
+    if (!response.ok) return null
+
     const resultat = await response.json()
     if (!resultat.ok || !Array.isArray(resultat.evenements)) return null
     return resultat.evenements.map(versEvenement)
   } catch {
+    // Délai dépassé, réseau coupé, réponse illisible : l'appelant retombera sur
+    // les parties locales et le dira à l'écran.
     return null
+  } finally {
+    clearTimeout(minuterie)
   }
 }
 

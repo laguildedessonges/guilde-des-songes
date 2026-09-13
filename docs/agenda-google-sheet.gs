@@ -374,7 +374,7 @@ function mettreDeCoteAnciennesArchives(classeur) {
   const premiere = texte(feuille.getRange(1, 1, 1, 1).getValues()[0][0])
   if (cleEntete(premiere) !== cleEntete(COLONNES_INSCRIPTIONS[0].nom)) return
 
-  const horodatage = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  const horodatage = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
   feuille.setName(`Archives (inscriptions, ${horodatage})`)
 }
 
@@ -446,7 +446,7 @@ function rafraichirStatuts() {
   const hauteur = feuille.getLastRow() - 1
   const dates = feuille.getRange(2, COLONNE_DATE, hauteur, 1).getValues()
   const actuels = feuille.getRange(2, COLONNE_STATUT, hauteur, 1).getValues()
-  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
 
   const voulus = dates.map(function (cellule) {
     return [statutPour(cellule[0], aujourdhui)]
@@ -467,7 +467,7 @@ function statutPour(valeurDate, aujourdhui) {
 
 /** Statut d'une seule ligne, après modification de sa date. */
 function majStatutLigne(feuille, ligne) {
-  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
   const date = feuille.getRange(ligne, COLONNE_DATE).getValue()
   feuille.getRange(ligne, COLONNE_STATUT).setValue(statutPour(date, aujourdhui))
 }
@@ -586,10 +586,10 @@ const CATEGORIES_ARCHIVES = [
 function reconstruireArchives() {
   const classeur = SpreadsheetApp.getActiveSpreadsheet()
   const archives = onglet(classeur, ONGLET_ARCHIVES, COLONNES_ARCHIVES)
-  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
 
-  const inscriptionsEv = lignes(ONGLET_INSCRIPTIONS_EVENEMENTS)
-  const inscriptionsOS = lignes(ONGLET_INSCRIPTIONS_OS)
+  const inscriptionsEv = indexerInscriptions(lignes(ONGLET_INSCRIPTIONS_EVENEMENTS))
+  const inscriptionsOS = indexerInscriptions(lignes(ONGLET_INSCRIPTIONS_OS))
 
   const passees = []
 
@@ -812,7 +812,7 @@ function synchroniserDiscord() {
   const jeton = PropertiesService.getScriptProperties().getProperty(CLE_JETON_DISCORD)
   if (!jeton) return
 
-  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
 
   // Les deux agendas : une soirée mensuelle peut elle aussi avoir son événement
   // Discord, et ses intéressés doivent figurer au registre comme les autres.
@@ -929,15 +929,14 @@ function reporterInteresses(registre, date, titre, pseudos) {
   aRetirer.reverse().forEach(function (ligne) { feuille.deleteRow(ligne) })
 
   const maintenant = new Date()
-  const fuseau = Session.getScriptTimeZone()
-  let rang = presents.length - aRetirer.length
+    let rang = presents.length - aRetirer.length
 
   pseudos.forEach(function (pseudo) {
     if (presents.indexOf(pseudo.toLowerCase()) !== -1) return
     rang++
     feuille.appendRow([
-      Utilities.formatDate(maintenant, fuseau, 'dd/MM/yyyy'),
-      Utilities.formatDate(maintenant, fuseau, 'HH:mm:ss'),
+      Utilities.formatDate(maintenant, fuseau(), 'dd/MM/yyyy'),
+      Utilities.formatDate(maintenant, fuseau(), 'HH:mm:ss'),
       date,
       titre,
       pseudo,
@@ -967,7 +966,7 @@ function verifierDiscord() {
   messages.push('✓ Jeton enregistré.')
 
   // Les lignes à venir qui portent un lien d'événement Discord.
-  const aujourdhui = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  const aujourdhui = Utilities.formatDate(new Date(), fuseau(), 'yyyy-MM-dd')
   const cibles = []
 
   ;[ONGLET_EVENEMENTS, ONGLET_MENSUELLES].forEach(function (nom) {
@@ -1099,6 +1098,19 @@ function ecrire(cellule, valeur) {
   if (String(cellule.getValue()) !== String(valeur)) cellule.setValue(valeur)
 }
 
+/**
+ * Fuseau horaire du classeur, retenu pour la durée de l'exécution.
+ *
+ * `Session.getScriptTimeZone()` est un appel de service, facturé en latence.
+ * Redemandé à chaque date lue — donc des centaines de fois par chargement de
+ * l'agenda — il coûtait à lui seul plusieurs secondes, et le site attendait.
+ */
+let fuseauRetenu = ''
+function fuseau() {
+  if (!fuseauRetenu) fuseauRetenu = Session.getScriptTimeZone()
+  return fuseauRetenu
+}
+
 /** Sans accents ni majuscules : sert à reconnaître les variantes de saisie. */
 function simplifier(texte) {
   return String(texte)
@@ -1149,8 +1161,7 @@ function normaliserType(valeur) {
  */
 function normaliserHoraire(valeur) {
   if (valeur instanceof Date) {
-    const fuseau = Session.getScriptTimeZone()
-    return Utilities.formatDate(valeur, fuseau, 'HH') + 'h' + Utilities.formatDate(valeur, fuseau, 'mm')
+        return Utilities.formatDate(valeur, fuseau, 'HH') + 'h' + Utilities.formatDate(valeur, fuseau, 'mm')
   }
 
   const texte = String(valeur).trim()
@@ -1168,7 +1179,7 @@ function normaliserHoraire(valeur) {
 /** Dates saisies en texte (10/10/2026) ou en date Google → AAAA-MM-JJ. */
 function versDateIso(valeur) {
   if (valeur instanceof Date) {
-    return Utilities.formatDate(valeur, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+    return Utilities.formatDate(valeur, fuseau(), 'yyyy-MM-dd')
   }
 
   const texte = String(valeur || '').trim()
@@ -1238,26 +1249,45 @@ function texte(valeur) {
 }
 
 /**
- * Inscriptions correspondant à une ligne d'agenda : même date, et même intitulé
- * dès que celui-ci est renseigné — utile si deux choses ont lieu le même jour.
+ * Index des inscriptions d'un registre, par date. Chaque ligne n'est lue
+ * qu'une fois : compter les inscrits de dix-huit lignes d'agenda relisait
+ * autrement tout le registre dix-huit fois, et chaque date relue coûtait un
+ * appel de service.
  */
-function compterInscrits(inscriptions, date, titre) {
-  return inscriptions.filter(function (i) {
+function indexerInscriptions(inscriptions) {
+  const parDate = {}
+
+  inscriptions.forEach(function (i) {
     // Les bandeaux de séparation ne sont pas des inscriptions.
-    if (estBandeau(champ(i, "Date de l'inscription"))) return false
-    // On compte des pseudos Discord : une ligne sans pseudo ne compte pas.
-    if (!pseudoDe(i)) return false
-    if (versDateIso(champ(i, 'Date')) !== date) return false
-    const intitule = texte(champ(i, 'Intitulé'))
-    return !intitule || intitule.toLowerCase() === String(titre).toLowerCase()
+    if (estBandeau(champ(i, "Date de l'inscription"))) return
+    // On compte des personnes : une ligne sans pseudo ne compte pas.
+    if (!pseudoDe(i)) return
+
+    const date = versDateIso(champ(i, 'Date'))
+    if (!date) return
+
+    if (!parDate[date]) parDate[date] = []
+    parDate[date].push(texte(champ(i, 'Intitulé')).toLowerCase())
+  })
+
+  return parDate
+}
+
+function compterInscrits(index, date, titre) {
+  const lot = index[date]
+  if (!lot) return 0
+
+  const cherche = String(titre).toLowerCase()
+  return lot.filter(function (intitule) {
+    return !intitule || intitule === cherche
   }).length
 }
 
 /** Agenda complet (parties, événements, soirées mensuelles) + inscriptions. */
 function doGet() {
   try {
-    const inscriptionsEv = lignes(ONGLET_INSCRIPTIONS_EVENEMENTS)
-    const inscriptionsOS = lignes(ONGLET_INSCRIPTIONS_OS)
+    const inscriptionsEv = indexerInscriptions(lignes(ONGLET_INSCRIPTIONS_EVENEMENTS))
+    const inscriptionsOS = indexerInscriptions(lignes(ONGLET_INSCRIPTIONS_OS))
 
     const parties = lignes(ONGLET_EVENEMENTS)
       .filter((l) => versDateIso(champ(l, 'Date')) && texte(champ(l, 'Titre')))
