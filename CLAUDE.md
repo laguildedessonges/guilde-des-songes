@@ -87,10 +87,11 @@ Côté GitHub, **Settings → Pages → Source doit être « GitHub Actions »**
 reste blanche (elle demande `/src/main.js`, que seul le serveur de dev sait servir).
 
 **Chemin de publication** : `BASE_PATH` au moment du build (`vite.config.js`), repris
-par le routeur. Le workflow le fixe à `/guilde-des-songes/`, le sous-dossier de l'URL
-GitHub Pages. Sur un domaine servi à la racine (laguildedessonges.net), mettre `/`
-dans le workflow. Les deux ne peuvent pas cohabiter : avec des URL propres, les liens
-et les fichiers doivent connaître le sous-dossier.
+par le routeur. Le workflow le fixe à `/`, le site étant servi à la racine du domaine
+**laguildedessonges.net** (domaine déclaré dans *Settings → Pages* et dans
+`public/CNAME`, qui doit porter la même valeur). Pour revenir à l'adresse GitHub en
+sous-dossier, remettre `/guilde-des-songes/`. Les deux ne peuvent pas cohabiter :
+avec des URL propres, les liens et les fichiers doivent connaître leur dossier.
 
 ## Règles
 
