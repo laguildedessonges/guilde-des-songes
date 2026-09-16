@@ -32,7 +32,8 @@ jobs:
 
       - run: npm ci
 
-      # Le site est servi dans un sous-dossier (stillebx.github.io/guilde-des-songes/) :
+      # Le site est servi dans un sous-dossier
+      # (laguildedessonges.github.io/guilde-des-songes/) :
       # les chemins des fichiers et des liens doivent en tenir compte. Sur un domaine
       # à la racine (laguildedessonges.net), mettre BASE_PATH: /
       - run: npm run build
