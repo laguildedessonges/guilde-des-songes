@@ -1473,11 +1473,13 @@ function doGet() {
           description: texte(champ(l, 'Description')),
           places: places.places,
           complet: places.complet,
-          // Le lien Discord d'une soirée mensuelle sert à relever les
-          // intéressés, pas à détourner l'inscription : le site n'en reçoit
-          // rien, et garde donc son formulaire — c'est le créneau ouvert à qui
-          // n'a pas de compte Discord.
-          lien: '',
+          // Le lien Discord d'une soirée mensuelle est envoyé au site comme
+          // celui des autres lignes. Il était effacé ici, du temps où le
+          // formulaire était le seul guichet d'une mensuelle ; le site propose
+          // désormais les deux — le salon pour qui y est déjà, le formulaire
+          // pour qui n'y est pas encore —, et sans ce lien il ne pouvait
+          // afficher que le second.
+          lien: texte(champ(l, 'Lien Discord')),
           inscrits: compterInscrits(inscriptionsOS, date, texte(champ(l, 'Titre'))),
         }
       })
