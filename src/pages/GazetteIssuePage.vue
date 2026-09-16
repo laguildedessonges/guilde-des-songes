@@ -472,13 +472,6 @@ onBeforeUnmount(() => clearTimeout(effacement))
     padding: 1.5rem 1.25rem;
   }
 
-  /* Justifier une colonne aussi étroite creuse de larges blancs entre les mots :
-     au téléphone, le texte du numéro reste au fer à gauche. */
-  .prose :deep(p),
-  .prose :deep(.resume__apercu) {
-    text-align: left;
-  }
-
   /* Au téléphone, la carte passe au-dessus de son texte : côte à côte, il ne
      restait qu'une colonne de quelques mots. */
   .prose :deep(.programme) {

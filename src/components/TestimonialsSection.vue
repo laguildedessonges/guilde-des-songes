@@ -139,10 +139,5 @@ const testimonials = [
     height: 2.875rem;
     font-size: 1.35rem;
   }
-
-  /* Justifier une colonne étroite creuse des rivières entre les mots. */
-  .testimonial__quote {
-    text-align: left;
-  }
 }
 </style>

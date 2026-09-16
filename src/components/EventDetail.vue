@@ -252,12 +252,15 @@ defineProps({
   color: var(--text-muted);
 }
 
+/* Zone d'action : une colonne centrée, dans un panneau comme dans une fenêtre.
+   Les pastilles d'état, le bouton Discord et le formulaire se répondent ainsi
+   au même axe — à l'ancienne, posés dans le flux du panneau, la pastille
+   restait à gauche et le formulaire s'en allait seul vers le centre. */
 .detail__actions {
-  display: contents;
-}
-
-.detail--fenetre .detail__actions {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
 }
 
 /* Les pastilles d'état (places, personnes annoncées) forment une ligne à elles
@@ -270,15 +273,8 @@ defineProps({
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-/* Dans la fenêtre, l'action est une colonne centrée : c'est son `gap` qui
-   espace, et la ligne de pastilles s'y centre comme le reste. */
-.detail--fenetre .detail__etat {
   justify-content: center;
-  margin-bottom: 0;
+  gap: 0.5rem;
 }
 
 .detail__seats,
@@ -308,9 +304,10 @@ defineProps({
 /* Le second guichet d'une soirée mensuelle : la ligne qui l'annonce reste en
    retrait, le bouton Discord garde la vedette. */
 .detail__ou {
-  margin: 0.25rem 0 0.9rem;
+  margin: 0;
   color: var(--text-muted);
   font-size: 0.95rem;
+  text-align: center;
 }
 
 .detail__past,
