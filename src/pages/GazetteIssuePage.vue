@@ -302,6 +302,63 @@ onBeforeUnmount(() => clearTimeout(effacement))
   margin-top: 1rem;
 }
 
+/* Résumé de session : trop long pour s'imposer d'un bloc, il arrive replié.
+   Son titre et son premier paragraphe restent en vue ; le reste s'ouvre au
+   clic, sans quitter le numéro ni charger quoi que ce soit. */
+.prose :deep(.resume) {
+  margin: 0 0 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-in-sm);
+}
+
+/* Le chevron par défaut est masqué : c'est la mention en bas du bloc qui dit
+   ce qu'un clic fera. */
+.prose :deep(.resume__tete) {
+  display: block;
+  cursor: pointer;
+  list-style: none;
+}
+
+.prose :deep(.resume__tete::-webkit-details-marker) {
+  display: none;
+}
+
+.prose :deep(.resume__titre) {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.prose :deep(.resume__apercu) {
+  display: block;
+  color: var(--text-muted);
+  text-align: justify;
+}
+
+.prose :deep(.resume__tete::after) {
+  content: 'Lire la suite du résumé';
+  display: inline-block;
+  margin-top: 0.9rem;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.prose :deep(.resume[open] .resume__tete::after) {
+  content: 'Replier le résumé';
+}
+
+.prose :deep(.resume__suite) {
+  margin-top: 1.1rem;
+}
+
+.prose :deep(.resume__suite p:last-child) {
+  margin-bottom: 0;
+}
+
 .missing {
   color: var(--text-muted);
 }
@@ -313,8 +370,13 @@ onBeforeUnmount(() => clearTimeout(effacement))
 
   /* Justifier une colonne aussi étroite creuse de larges blancs entre les mots :
      au téléphone, le texte du numéro reste au fer à gauche. */
-  .prose :deep(p) {
+  .prose :deep(p),
+  .prose :deep(.resume__apercu) {
     text-align: left;
+  }
+
+  .prose :deep(.resume) {
+    padding: 1rem 1.1rem;
   }
 }
 

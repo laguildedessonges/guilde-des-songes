@@ -67,6 +67,21 @@ réseaux) vient de l'ancien site.
     lui-même mène à l'agenda (nouvel onglet, lien copié, agenda muet).
   - Le programme se termine par l'avertissement d'usage, en citation : il n'est
     pas exhaustif et peut changer, le Discord et l'agenda font foi.
+  - **Résumé de session** : partout où le document porte la phrase « Un résumé de
+    la dernière session est disponible ! », le résumé qui suit s'écrit dans un
+    bloc replié — seul son premier paragraphe se lit d'emblée, le reste s'ouvre
+    au clic :
+
+    ```
+    :::resume Chapitre 11 — La Passerelle
+    Premier paragraphe : l'aperçu, toujours visible.
+
+    Le reste du résumé, déplié au clic.
+    :::
+    ```
+
+    Ces résumés font plusieurs dizaines de paragraphes : dépliés d'office, ils
+    noieraient tout le reste du numéro.
 - **Partenaires** : `src/data/partners.js`.
 - **Réseaux et contact** : `src/socials.js` (partagé entête + pied de page).
 
