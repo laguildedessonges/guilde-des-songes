@@ -23,9 +23,11 @@ réseaux) vient de l'ancien site.
 - **Agenda** : piloté par une feuille Google (onglet « Événements » : date, horaire,
   type, titre, jeu, lieu, MJ, description, places, lien Discord). Le site la lit au
   chargement et affiche les places restantes ; les inscriptions s'y ajoutent, qu'elles
-  viennent du site ou soient saisies à la main. Mise en place dans
-  `docs/agenda-google-sheet.gs`, puis coller l'URL du déploiement dans
-  `SHEET_ENDPOINT` (`src/data/sheet.js`).
+  viennent du site ou soient saisies à la main. À défaut de places annoncées, le
+  décompte relevé s'affiche quand même, à titre informatif (« 15 intéressé·es sur
+  Discord », ou « 9 inscrit·es » là où c'est le formulaire du site qui accueille).
+  Mise en place dans `docs/agenda-google-sheet.gs`, puis coller l'URL du
+  déploiement dans `SHEET_ENDPOINT` (`src/data/sheet.js`).
   Tant que la feuille n'est pas configurée — ou si elle ne répond pas — le site
   retombe sur les parties écrites dans `src/data/events.js`.
   Les parties passées disparaissent automatiquement. Le type `mensuelle` ouvre le
