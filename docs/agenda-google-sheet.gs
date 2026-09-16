@@ -179,10 +179,11 @@ const COLONNES_MENSUELLES = [
     nom: 'Lien Discord',
     largeur: 240,
     aide:
-      'Lien de l’événement Discord de la soirée, s’il y en a un. Sert seulement ' +
-      'à relever les « Intéressé·e » : leurs pseudos rejoignent le registre. Le ' +
-      'site n’en reçoit rien et garde son formulaire — la soirée mensuelle doit ' +
-      'rester ouverte à qui n’a pas de compte Discord.',
+      'Lien de l’événement Discord de la soirée, s’il y en a un. Il sert à deux ' +
+      'choses : relever les « Intéressé·e » (leurs pseudos rejoignent le ' +
+      'registre), et afficher le bouton « S’inscrire sur le Discord » sur le ' +
+      'site. Le formulaire reste proposé juste en dessous — une soirée ' +
+      'mensuelle doit rester ouverte à qui n’a pas de compte Discord.',
   },
 ]
 
@@ -1356,6 +1357,9 @@ function cleEntete(nom) {
  * Lignes d'un onglet sous forme d'objets. Chaque valeur est accessible par
  * l'intitulé exact de la colonne ET par sa clé tolérante.
  */
+const COLONNE_LIEN_DISCORD = 'Lien Discord'
+const EST_UNE_URL = /^https?:\/\//i
+
 function lignes(nomOnglet) {
   const feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nomOnglet)
   if (!feuille || feuille.getLastRow() < 2) return []
@@ -1363,14 +1367,44 @@ function lignes(nomOnglet) {
   const valeurs = feuille.getDataRange().getValues()
   const entetes = valeurs[0].map((e) => String(e).trim())
 
-  return valeurs.slice(1).map((ligne) => {
+  // Colonne du lien Discord : sa valeur affichée ne porte pas toujours l'URL.
+  // Sheets transforme volontiers une adresse collée en « puce intelligente »,
+  // et `getValues()` n'en renvoie alors que le libellé, voire rien du tout ;
+  // une formule HYPERLINK cache l'URL de la même façon. On va donc la chercher
+  // là où elle se trouve vraiment — lien enrichi de la cellule, ou formule.
+  const colLien = entetes.indexOf(COLONNE_LIEN_DISCORD)
+  const hauteur = valeurs.length - 1
+  const enrichis =
+    colLien === -1 ? null : feuille.getRange(2, colLien + 1, hauteur, 1).getRichTextValues()
+  const formules =
+    colLien === -1 ? null : feuille.getRange(2, colLien + 1, hauteur, 1).getFormulas()
+
+  return valeurs.slice(1).map((ligne, i) => {
     const objet = {}
-    entetes.forEach((entete, i) => {
-      objet[entete] = ligne[i]
-      objet[cleEntete(entete)] = ligne[i]
+    entetes.forEach((entete, j) => {
+      objet[entete] = ligne[j]
+      objet[cleEntete(entete)] = ligne[j]
     })
+
+    if (colLien !== -1 && !EST_UNE_URL.test(texte(ligne[colLien]))) {
+      const url = urlDeLaCellule(enrichis[i][0], formules[i][0])
+      if (url) {
+        objet[entetes[colLien]] = url
+        objet[cleEntete(entetes[colLien])] = url
+      }
+    }
+
     return objet
   })
+}
+
+/** URL cachée d'une cellule : son lien enrichi, sinon celle de sa formule. */
+function urlDeLaCellule(riche, formule) {
+  const lien = riche && riche.getLinkUrl()
+  if (lien) return String(lien)
+
+  const dansLaFormule = String(formule || '').match(/https?:\/\/[^"'\s)]+/i)
+  return dansLaFormule ? dansLaFormule[0] : ''
 }
 
 /**

@@ -210,7 +210,7 @@ function enHtml(markdown) {
     html = html.replace(`<p>JETONRESUME${place}</p>`, bloc)
   })
 
-  return avecCheminDePublication(html)
+  return liensExternesACote(avecCheminDePublication(html))
 }
 
 // Un numéro renvoie vers le site lui-même (l'agenda, par exemple) : le
@@ -222,6 +222,12 @@ function enHtml(markdown) {
 function avecCheminDePublication(html) {
   const base = import.meta.env.BASE_URL // finit toujours par « / »
   return html.replace(/href="\/(?!\/)/g, `href="${base}`)
+}
+
+// Un renvoi hors du site (le Discord de la Guilde, par exemple) s'ouvre à côté :
+// suivi dans le même onglet, il ferait perdre au lecteur le numéro qu'il lisait.
+function liensExternesACote(html) {
+  return html.replace(/<a href="(https?:\/\/[^"]+)"/g, '<a href="$1" target="_blank" rel="noopener"')
 }
 
 export function findIssue(slug) {
