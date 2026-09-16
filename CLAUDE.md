@@ -22,23 +22,51 @@ réseaux) vient de l'ancien site.
 
 - **Agenda** : piloté par une feuille Google (onglet « Événements » : date, horaire,
   type, titre, jeu, lieu, MJ, description, places, lien Discord). Le site la lit au
-  chargement et affiche les places restantes ; les inscriptions s'y ajoutent, qu'elles
-  viennent du site ou soient saisies à la main. À défaut de places annoncées, le
-  décompte relevé s'affiche quand même, à titre informatif (« 15 intéressé·es sur
-  Discord », ou « 9 inscrit·es » là où c'est le formulaire du site qui accueille).
+  chargement ; les inscriptions s'y ajoutent, qu'elles viennent du site ou soient
+  saisies à la main. Un nombre dans la colonne « Places » allume le compteur
+  « 2/4 places restantes », intéressés Discord déduits ; sans nombre, pas de
+  compteur. Les soirées mensuelles annoncent en plus les personnes déjà
+  annoncées (« 15 intéressé·es sur Discord », ou « 9 inscrit·es » quand c'est le
+  formulaire du site qui accueille) — elles seules : ailleurs, un décompte sans
+  total ne se met en regard de rien.
   Mise en place dans `docs/agenda-google-sheet.gs`, puis coller l'URL du
   déploiement dans `SHEET_ENDPOINT` (`src/data/sheet.js`).
   Tant que la feuille n'est pas configurée — ou si elle ne répond pas — le site
   retombe sur les parties écrites dans `src/data/events.js`.
-  Les parties passées disparaissent automatiquement. Le type `mensuelle` ouvre le
-  formulaire d'inscription du site ; les autres renvoient au salon Discord.
+  Les parties passées disparaissent automatiquement. Une soirée `mensuelle`
+  accueille par les deux guichets : le bouton Discord quand la ligne a un lien,
+  et le formulaire du site pour qui n'est pas encore sur le serveur. Les autres
+  tables n'en ouvrent qu'un — le formulaire à défaut de lien Discord, et
+  seulement si des places sont annoncées.
+  `/agenda?jour=2026-09-19` ouvre directement ce jour-là : c'est ainsi que la
+  gazette renvoie à une date.
 - **Intéressés Discord** : la feuille ne peut pas interroger Discord (bloqué depuis
   les serveurs de Google, code 40333). Le workflow `.github/workflows/releve-discord.yml`
   lance `scripts/releve-discord.mjs` toutes les 15 min et publie `interesses.json` sur
   la branche `donnees`, que la feuille lit. Le jeton du bot est le secret GitHub
   `DISCORD_TOKEN`, l'identifiant du serveur est dans le workflow.
 - **Gazette** : un fichier Markdown par numéro dans `src/gazette/` (front-matter
-  `title` / `date` / `excerpt`). Déposer le fichier suffit : il est listé et publié.
+  `title` / `numero` / `date` / `excerpt`). Déposer le fichier suffit : il est
+  listé et publié. Les numéros se consultent en ligne : rien à télécharger, le
+  bouton « Partager le numéro » ne fait que donner son lien.
+
+  Consignes de mise en forme, à tenir d'un numéro à l'autre :
+  - `title` porte le **titre seul** et `numero` le numéro. Dans la **liste**, où
+    il faut distinguer les numéros entre eux, ils se lisent sur une ligne :
+    « Titre&nbsp;· Numéro 1 », séparés d'un **point médian**, le numéro à la
+    taille du titre mais en romain. En **lecture**, le numéro passe sous le
+    titre, en plus petit et en retrait.
+  - **Fidélité au document d'origine** : le gras du PDF est conservé (ce sont
+    généralement les **lieux** : l'Annexe de la Maison Phare, l'Espace
+    Baudelaire, le Dionysos…) et l'italique aussi (titres de jeux et d'œuvres,
+    et le nom de la *Gazette* elle-même).
+  - Chaque **date du programme** est en gras et cliquable, vers le jour de
+    l'agenda : `[Le 19/09](/agenda?jour=2026-09-19)`. Un renvoi interne s'écrit
+    à la racine ; le chemin de publication lui est ajouté au passage. Le clic
+    ouvre la fenêtre des parties de ce jour **sans quitter le numéro** ; le lien
+    lui-même mène à l'agenda (nouvel onglet, lien copié, agenda muet).
+  - Le programme se termine par l'avertissement d'usage, en citation : il n'est
+    pas exhaustif et peut changer, le Discord et l'agenda font foi.
 - **Partenaires** : `src/data/partners.js`.
 - **Réseaux et contact** : `src/socials.js` (partagé entête + pied de page).
 

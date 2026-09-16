@@ -1,12 +1,7 @@
 <script setup>
-import { nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-import IconGlyph from '../components/IconGlyph.vue'
 import PageHeading from '../components/PageHeading.vue'
 import { issues } from '../data/gazette.js'
 import { typo } from '../typographie.js'
-
-const router = useRouter()
 
 const dateFormat = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' })
 
@@ -14,14 +9,6 @@ function formatMonth(iso) {
   if (!iso) return ''
   const [y, m] = iso.split('-').map(Number)
   return dateFormat.format(new Date(y, (m || 1) - 1, 1))
-}
-
-// Sans PDF joint, on ouvre le numéro puis on lance l'impression du navigateur,
-// qui sait enregistrer en PDF (les styles @media print n'emportent que l'article).
-async function downloadIssue(issue) {
-  await router.push({ name: 'gazette-issue', params: { slug: issue.slug } })
-  await nextTick()
-  window.print()
 }
 </script>
 
@@ -37,30 +24,24 @@ async function downloadIssue(issue) {
       <ul v-if="issues.length" class="issues">
         <li v-for="issue in issues" :key="issue.slug" class="issue">
           <p class="issue__date">{{ formatMonth(issue.date) }}</p>
-          <h2 class="issue__title">{{ typo(issue.title) }}</h2>
+          <h2 class="issue__title">
+            {{ typo(issue.title)
+            }}<template v-if="issue.numero"
+              ><span class="issue__sep"> · </span
+              ><span class="issue__numero">Numéro {{ issue.numero }}</span></template
+            >
+          </h2>
           <p v-if="issue.excerpt" class="issue__excerpt">{{ typo(issue.excerpt) }}</p>
 
+          <!-- Les numéros se consultent en ligne : rien à télécharger, et c'est
+               depuis le numéro lui-même qu'on en partage le lien. -->
           <div class="issue__actions">
             <RouterLink
-              class="btn btn--ghost issue__action"
+              class="btn btn--primary issue__action"
               :to="{ name: 'gazette-issue', params: { slug: issue.slug } }"
             >
               Lire le numéro
             </RouterLink>
-
-            <a
-              v-if="issue.pdf"
-              class="btn btn--primary issue__action"
-              :href="issue.pdf"
-              download
-            >
-              <IconGlyph name="download" />
-              Télécharger
-            </a>
-            <button v-else class="btn btn--primary issue__action" @click="downloadIssue(issue)">
-              <IconGlyph name="download" />
-              Télécharger
-            </button>
           </div>
         </li>
       </ul>
@@ -124,6 +105,19 @@ async function downloadIssue(issue) {
 .issue__title {
   font-size: 1.3rem;
   margin-bottom: 0.6rem;
+}
+
+/* Même grammaire que sur la page du numéro : à la taille du titre, seule la
+   graisse le distingue. */
+.issue__numero {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Point médian séparateur, à la taille et à l'encre du titre (voir la page du
+   numéro pour le détail). */
+.issue__sep {
+  color: var(--text);
 }
 
 .issue__excerpt {

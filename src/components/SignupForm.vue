@@ -89,7 +89,10 @@ function ecrire() {
   display: grid;
   gap: 0.5rem;
   max-width: 30rem;
-  margin: 0 auto;
+  /* Pas de centrage propre : dans un panneau, tout est au fer à gauche comme le
+     reste du texte ; la fenêtre, elle, centre déjà sa colonne d'action. Centré
+     d'office, le formulaire partait seul vers la droite, loin des pastilles. */
+  margin: 0;
   padding: 1rem 1.1rem;
   border-radius: var(--radius);
   box-shadow: var(--shadow-in-sm);
@@ -132,6 +135,13 @@ function ecrire() {
   flex: none;
   font-size: 0.95rem;
   padding: 0.6rem 1.3rem;
+}
+
+/* Le champ et son bouton forment une paire : même hauteur, et assez haute pour
+   se viser au doigt (2.75rem ≈ 44px, la cible tactile de référence). */
+.signup__input,
+.signup__btn {
+  min-height: 2.75rem;
 }
 
 /* Mention discrète : elle informe sans peser sur le geste. */

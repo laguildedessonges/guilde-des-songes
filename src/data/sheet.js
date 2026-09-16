@@ -179,15 +179,18 @@ function versEvenement(ligne) {
     // cas des tables d'un MJ, dont les places sont recopiées de son annonce et
     // les inscrits relevés sur l'événement Discord.
     //
-    // Le formulaire du site, lui, ne s'ouvre qu'à défaut de lien Discord : là où
-    // la Guilde accueille sans passer par le serveur, et là seulement. Rien ne
-    // sert de proposer deux guichets pour une table.
+    // Le formulaire du site s'ouvre dans deux cas.
     //
-    // Une soirée mensuelle l'ouvre même sans places annoncées : elle n'a pas
-    // toujours de quota, mais elle accueille toujours — c'est le créneau par
-    // lequel on entre à la Guilde. Sans nombre de places, pas de compteur ;
-    // l'inscription est simplement enregistrée.
-    form: !complet && !ligne.lien && (places > 0 || kind === 'mensuelle'),
+    // Une soirée mensuelle l'ouvre toujours, même quand elle renvoie aussi à son
+    // salon Discord : c'est le créneau par lequel on entre à la Guilde, et on ne
+    // peut pas demander d'être déjà sur le serveur pour s'y inscrire. Les deux
+    // guichets cohabitent donc là, et là seulement — le bouton Discord pour qui
+    // y est déjà, le formulaire pour qui n'y est pas encore ou n'a pas de compte.
+    //
+    // Les autres tables gardent un guichet unique : le formulaire à défaut de
+    // lien Discord, et seulement si des places sont annoncées. Proposer deux
+    // portes d'entrée pour la table d'un MJ ne ferait que disperser ses inscrits.
+    form: !complet && (kind === 'mensuelle' || (!ligne.lien && places > 0)),
     signup: ligne.lien || undefined,
   }
 }

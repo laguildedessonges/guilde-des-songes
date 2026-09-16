@@ -1,22 +1,33 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import PageHeading from '../components/PageHeading.vue'
 import AgendaCalendar from '../components/AgendaCalendar.vue'
-import SignupForm from '../components/SignupForm.vue'
 import EventDialog from '../components/EventDialog.vue'
+import EventDetail from '../components/EventDetail.vue'
 import { events as localEvents, KIND_LABELS } from '../data/events.js'
 import {
   agendaPerime,
   agendaRecu,
   fetchAgenda,
-  placesRestantes,
   rechargerAgenda,
 } from '../data/sheet.js'
+import {
+  eventKey,
+  formatDate,
+  kindColor,
+  kindLabel,
+  kindOf,
+  libelleJeu,
+  sansPrefixeMJ,
+} from '../data/evenement-affichage.js'
 import { typo } from '../typographie.js'
 
 // Six vignettes par page (3 colonnes × 2 lignes) : la page reste courte quel
 // que soit le nombre de parties annoncées.
 const PAGE_SIZE = 6
+
+const route = useRoute()
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -45,16 +56,16 @@ function afficher(depuisFeuille) {
 onMounted(async () => {
   if (chargement.value) {
     afficher(await fetchAgenda())
-    return
-  }
-
-  // Agenda déjà à l'écran : on ne redemande la feuille que si la réponse a
-  // vieilli — les places restantes bougent — et le remplacement se fait en
-  // arrière-plan, sans écran d'attente. Une feuille muette ne l'efface pas.
-  if (agendaPerime()) {
+  } else if (agendaPerime()) {
+    // Agenda déjà à l'écran : on ne redemande la feuille que si la réponse a
+    // vieilli — les places restantes bougent — et le remplacement se fait en
+    // arrière-plan, sans écran d'attente. Une feuille muette ne l'efface pas.
     const frais = await rechargerAgenda()
     if (frais) afficher(frais)
   }
+
+  // Les parties sont en place : le jour demandé dans l'URL peut s'ouvrir.
+  ouvrirJourDeLUrl()
 })
 
 const sorted = computed(() => [...events.value].sort((a, b) => a.date.localeCompare(b.date)))
@@ -62,68 +73,6 @@ const sorted = computed(() => [...events.value].sort((a, b) => a.date.localeComp
 // Les parties passées quittent la liste mais restent consultables dans le
 // calendrier : leur pastille y demeure, en retrait.
 const upcoming = computed(() => sorted.value.filter((event) => event.date >= today))
-
-function eventKey(event) {
-  return event.date + event.title
-}
-
-// Le type vient de la feuille et pilote couleur et libellé ; la présence d'un
-// formulaire d'inscription, elle, ne dépend que du nombre de places.
-function kindOf(event) {
-  return event.kind || 'one-shot'
-}
-
-function kindLabel(event) {
-  return KIND_LABELS[kindOf(event)] || kindOf(event)
-}
-
-// Places affichées : décompte réel venu de la feuille, sinon le texte de events.js.
-function placesLabel(event) {
-  const restantes = placesRestantes(event)
-  if (restantes === null) return event.seats || ''
-  if (restantes === 0) return 'Complet'
-  return `${restantes} place${restantes > 1 ? 's' : ''} restante${restantes > 1 ? 's' : ''}`
-}
-
-// À défaut de places annoncées, le relevé se voit quand même : savoir que sept
-// personnes se sont dites intéressées renseigne, même sans quota. Le compteur
-// de places, quand il existe, dit déjà tout — l'information ne s'ajoute pas à
-// lui, elle le remplace. Le libellé suit l'origine du décompte : les intéressés
-// viennent de l'événement Discord, les inscrits du formulaire du site.
-function interetLabel(event) {
-  if (placesLabel(event)) return ''
-
-  const n = event.inscrits || 0
-  if (!n) return ''
-
-  if (event.signup) return `${n} intéressé·e${n > 1 ? 's' : ''} sur Discord`
-  return `${n} inscrit·e${n > 1 ? 's' : ''}`
-}
-
-function estComplet(event) {
-  return placesRestantes(event) === 0
-}
-
-// Les cellules laissées vides dans la feuille ne doivent laisser aucune trace :
-// on assemble les lignes d'information à partir des seuls champs remplis.
-function joindre(...parties) {
-  return typo(parties.filter((p) => p && String(p).trim()).join(' · '))
-}
-
-// Une soirée mensuelle propose plusieurs tables : son étiquette se met au pluriel.
-function libelleJeu(event) {
-  return kindOf(event) === 'mensuelle' ? 'Jeux' : 'Jeu'
-}
-
-// La colonne MJ de la feuille contient souvent « MJ : Marc » : l'étiquette de la
-// vignette le dit déjà, on ne répète donc pas le préfixe.
-function sansPrefixeMJ(valeur) {
-  return String(valeur || '').replace(/^\s*MJ\s*:\s*/i, '')
-}
-
-function kindColor(event) {
-  return `var(--kind-${kindOf(event)})`
-}
 
 const marks = computed(() =>
   sorted.value.map((event) => ({
@@ -204,22 +153,46 @@ function selectDate(iso) {
   if (index !== -1) page.value = Math.floor(index / PAGE_SIZE)
 }
 
-const dateFormat = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-})
+// Lien profond, tel que la gazette en pose : /agenda?jour=2026-09-19 ouvre ce
+// jour-là. Le calendrier suit la sélection et se place de lui-même sur le bon
+// mois ; on amène en plus le panneau à l'écran, sans quoi le lien déposerait le
+// lecteur en haut de la page, au-dessus de ce qu'il venait voir.
+const panneauJour = ref(null)
+
+// Le jour réclamé par l'URL, gardé à part : c'est lui qui décide du mois sur
+// lequel le calendrier s'ouvre. Le lui faire suivre par la sélection ne
+// marchait pas — le calendrier se pose aussi sur le mois de la prochaine
+// partie, et selon l'ordre des deux réglages le jour demandé restait invisible
+// dans la grille. Une fois posé, il ne s'effacera pas si l'on referme le jour :
+// le calendrier ne bougerait alors plus sous les pieds du lecteur.
+const jourDemande = ref('')
+
+const focusCalendrier = computed(
+  () => jourDemande.value || (upcoming.value.length ? upcoming.value[0].date : ''),
+)
+
+async function ouvrirJourDeLUrl() {
+  const jour = String(route.query.jour || '')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(jour)) return
+
+  jourDemande.value = jour
+  openDate.value = jour
+
+  const index = upcoming.value.findIndex((item) => item.date === jour)
+  if (index !== -1) page.value = Math.floor(index / PAGE_SIZE)
+
+  await nextTick()
+  panneauJour.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+// Un autre jour demandé sans quitter la page (deux renvois d'un même numéro).
+watch(() => route.query.jour, ouvrirJourDeLUrl)
 
 const shortDateFormat = new Intl.DateTimeFormat('fr-FR', {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
 })
-
-function formatDate(iso) {
-  const [y, m, d] = iso.split('-').map(Number)
-  return dateFormat.format(new Date(y, m - 1, d))
-}
 
 function formatShortDate(iso) {
   const [y, m, d] = iso.split('-').map(Number)
@@ -237,16 +210,14 @@ function formatShortDate(iso) {
       >
         <p>
           Les soirées mensuelles sont ouvertes à toutes et tous, sans compte Discord
-          nécessaire&nbsp;: écrivez-nous depuis la soirée qui vous intéresse. Nous
-          aimons échanger avant de vous inscrire — pour répondre à vos questions, et
-          vous accueillir comme il faut si c'est votre première partie.
+          nécessaire&nbsp;: écrivez-nous depuis la soirée qui vous intéresse.
         </p>
       </PageHeading>
 
       <AgendaCalendar
         :marks="marks"
         :selected="openDate"
-        :focus="upcoming.length ? upcoming[0].date : ''"
+        :focus="focusCalendrier"
         @select="selectDate"
       />
 
@@ -260,7 +231,7 @@ function formatShortDate(iso) {
       <!-- Jour choisi dans le calendrier : ses lignes s'affichent ici, dans la
            page. À plusieurs, elles se resserrent côte à côte ; un clic ouvre
            alors la vignette en fenêtre, où elle tient en entier. -->
-      <div v-if="openEvents.length" class="jour">
+      <div v-if="openEvents.length" ref="panneauJour" class="jour">
         <p v-if="detailsCompacts" class="details__intro">
           {{ openEvents.length }} rendez-vous le {{ formatDate(openDate) }}
         </p>
@@ -276,62 +247,7 @@ function formatShortDate(iso) {
           :title="detailsCompacts ? 'Voir le détail' : undefined"
           @click="detailsCompacts ? ouvrirFenetre(item) : null"
         >
-          <p class="detail__kind">{{ kindLabel(item) }}</p>
-          <h2 class="detail__title">{{ typo(item.title) }}</h2>
-          <p class="detail__when">
-            {{ joindre(item.time, item.place) }}
-          </p>
-          <p v-if="item.game" class="detail__champ">
-            <span class="detail__etiquette">{{ libelleJeu(item) }}</span>{{ typo(item.game) }}
-          </p>
-          <p v-if="item.gm" class="detail__champ">
-            <span class="detail__etiquette">MJ</span>{{ typo(sansPrefixeMJ(item.gm)) }}
-          </p>
-
-          <p v-if="item.text" class="detail__text detail__text--court">{{ typo(item.text) }}</p>
-
-          <!-- Zone d'action : dans la fenêtre, elle se centre dans l'espace resté
-               libre sous la description. -->
-          <div class="detail__actions">
-          <p v-if="item.date < today" class="detail__past">Cette partie a déjà eu lieu.</p>
-
-          <template v-else>
-            <p
-              v-if="placesLabel(item)"
-              class="detail__seats"
-              :class="{ 'detail__seats--complet': estComplet(item) }"
-            >
-              {{ placesLabel(item) }}
-            </p>
-
-            <p v-if="interetLabel(item)" class="detail__interest">
-              {{ interetLabel(item) }}
-            </p>
-
-            <p v-if="estComplet(item)" class="detail__closed">
-              C'est complet. Écrivez-nous sur le Discord pour la liste d'attente.
-            </p>
-
-            <SignupForm
-              v-else-if="item.form"
-              :title="item.title"
-              :date="item.date"
-              :time="item.time"
-            />
-            <a
-              v-else-if="item.signup"
-              class="btn btn--primary detail__btn"
-              :href="item.signup"
-              target="_blank"
-              rel="noopener"
-            >
-              S'inscrire sur le Discord
-            </a>
-            <p v-else-if="item.kind === 'campagne'" class="detail__closed">
-              Table fermée&nbsp;: la campagne suit son cours.
-            </p>
-          </template>
-          </div>
+          <EventDetail :event="item" :today="today" :compact="detailsCompacts" />
         </component>
         </div>
       </div>
@@ -339,62 +255,7 @@ function formatShortDate(iso) {
       <!-- Vignette sélectionnée : au premier plan, cadre de taille fixe. -->
       <EventDialog v-if="modalEvent" :titre="dialogTitre" @close="fermerFenetre">
         <article class="detail detail--fenetre" :style="{ '--kind-color': kindColor(modalEvent) }">
-          <p class="detail__kind">{{ kindLabel(modalEvent) }}</p>
-          <h2 class="detail__title">{{ typo(modalEvent.title) }}</h2>
-          <p class="detail__when">
-            {{ joindre(modalEvent.time, modalEvent.place) }}
-          </p>
-          <p v-if="modalEvent.game" class="detail__champ">
-            <span class="detail__etiquette">{{ libelleJeu(modalEvent) }}</span>{{ typo(modalEvent.game) }}
-          </p>
-          <p v-if="modalEvent.gm" class="detail__champ">
-            <span class="detail__etiquette">MJ</span>{{ typo(sansPrefixeMJ(modalEvent.gm)) }}
-          </p>
-
-          <p v-if="modalEvent.text" class="detail__text">{{ typo(modalEvent.text) }}</p>
-
-          <!-- Zone d'action : dans la fenêtre, elle se centre dans l'espace resté
-               libre sous la description. -->
-          <div class="detail__actions">
-          <p v-if="modalEvent.date < today" class="detail__past">Cette partie a déjà eu lieu.</p>
-
-          <template v-else>
-            <p
-              v-if="placesLabel(modalEvent)"
-              class="detail__seats"
-              :class="{ 'detail__seats--complet': estComplet(modalEvent) }"
-            >
-              {{ placesLabel(modalEvent) }}
-            </p>
-
-            <p v-if="interetLabel(modalEvent)" class="detail__interest">
-              {{ interetLabel(modalEvent) }}
-            </p>
-
-            <p v-if="estComplet(modalEvent)" class="detail__closed">
-              C'est complet. Écrivez-nous sur le Discord pour la liste d'attente.
-            </p>
-
-            <SignupForm
-              v-else-if="modalEvent.form"
-              :title="modalEvent.title"
-              :date="modalEvent.date"
-              :time="modalEvent.time"
-            />
-            <a
-              v-else-if="modalEvent.signup"
-              class="btn btn--primary detail__btn"
-              :href="modalEvent.signup"
-              target="_blank"
-              rel="noopener"
-            >
-              S'inscrire sur le Discord
-            </a>
-            <p v-else-if="modalEvent.kind === 'campagne'" class="detail__closed">
-              Table fermée&nbsp;: la campagne suit son cours.
-            </p>
-          </template>
-          </div>
+          <EventDetail :event="modalEvent" :today="today" />
         </article>
       </EventDialog>
 
@@ -494,192 +355,6 @@ function formatShortDate(iso) {
    colonnes vides de s'effacer, et les panneaux ne s'étireraient pas. */
 .jour {
   margin-top: 1.75rem;
-}
-
-.details {
-  display: grid;
-  gap: 1rem;
-}
-
-.details--compacts {
-  grid-template-columns: repeat(auto-fit, minmax(min(18.75rem, 100%), 1fr));
-  align-items: stretch;
-}
-
-.details__intro {
-  margin-bottom: 0.9rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-/* Panneau de détails : liseré à la couleur du type */
-.detail {
-  padding: 1.5rem 1.75rem;
-  border: none;
-  border-left: 5px solid var(--kind-color);
-  border-radius: var(--radius);
-  background: var(--bg-panel);
-  color: var(--text);
-  font-family: var(--font-body);
-  text-align: left;
-  box-shadow: var(--shadow-out);
-}
-
-/* Resserré : le texte est borné, et la vignette s'ouvre en fenêtre au clic. */
-.details--compacts .detail {
-  padding: 1.1rem 1.25rem;
-}
-
-.details--compacts .detail__title {
-  font-size: 1.2rem;
-}
-
-.detail--cliquable {
-  width: 100%;
-  cursor: pointer;
-  transition: box-shadow 0.25s ease;
-}
-
-.detail--cliquable:hover {
-  box-shadow: var(--shadow-out), var(--glow);
-}
-
-.detail__text--court {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Dans la fenêtre, la vignette occupe tout le cadre, en hauteur comme en
-   largeur : ni relief ni fond propres, et l'action reste en bas. */
-.detail--fenetre {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 0 0 0 1.25rem;
-  background: none;
-  box-shadow: none;
-}
-
-/* La marge basse du texte fausserait le centrage : l'écart est porté par la
-   zone d'action elle-même. */
-.detail--fenetre .detail__text {
-  margin-bottom: 0;
-}
-
-/* L'action occupe l'espace resté libre sous la description, et s'y centre —
-   verticalement comme horizontalement. */
-.detail--fenetre .detail__actions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-}
-
-.detail--fenetre .detail__seats,
-.detail--fenetre .detail__closed,
-.detail--fenetre .detail__past {
-  text-align: center;
-}
-
-/* Le formulaire garde une largeur confortable sans s'étirer sur tout le cadre. */
-.detail--fenetre :deep(.signup),
-.detail--fenetre :deep(.signup__done) {
-  width: min(27.5rem, 100%);
-}
-
-.detail__kind {
-  color: var(--kind-color);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  margin-bottom: 0.3rem;
-}
-
-.detail__title {
-  font-size: 1.5rem;
-  margin-bottom: 0.4rem;
-}
-
-.detail__when {
-  font-weight: 600;
-  text-transform: capitalize;
-  margin-bottom: 0.2rem;
-}
-
-.detail__champ {
-  color: var(--text);
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
-.detail__etiquette {
-  color: var(--kind-color);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  margin-right: 0.45rem;
-}
-
-.detail__champ + .detail__text,
-.detail__when + .detail__text {
-  margin-top: 0.8rem;
-}
-
-/* Corps du texte justifié, comme le reste du site. */
-.detail__text {
-  color: var(--text-muted);
-  margin-bottom: 1rem;
-  text-align: justify;
-}
-
-.detail__seats--complet {
-  color: var(--text-muted);
-}
-
-.detail__actions {
-  display: contents;
-}
-
-.detail--fenetre .detail__actions {
-  display: flex;
-}
-
-.detail__seats,
-.detail__interest {
-  display: inline-block;
-  margin-bottom: 1rem;
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  box-shadow: var(--shadow-in-sm);
-  font-size: 0.95rem;
-}
-
-.detail__seats {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-/* Le relevé est une information, pas un quota : même pastille que le compteur
-   de places, mais en retrait, pour qu'il ne se lise pas comme une jauge. */
-.detail__interest {
-  color: var(--text-muted);
-}
-
-.detail__past,
-.detail__closed {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.detail__btn {
-  font-size: 1rem;
 }
 
 /* Liste paginée */
@@ -830,11 +505,5 @@ function formatShortDate(iso) {
 .agenda__empty {
   margin-top: 2rem;
   color: var(--text-muted);
-}
-
-@media (max-width: 620px) {
-.detail {
-    padding: 1.25rem;
-  }
 }
 </style>
