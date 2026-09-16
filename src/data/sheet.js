@@ -7,7 +7,7 @@ import { typo } from '../typographie.js'
 // constante est vide, le site fonctionne sur les parties écrites en dur dans
 // src/data/events.js : rien ne casse, mais les places ne se décomptent pas.
 export const SHEET_ENDPOINT =
-  'https://script.google.com/macros/s/AKfycbwlwLChRf3RMtjSH23hC22chzlmPUiXu17E4J5iAK8vvTACFUQQqsvrc1dC5g54DEheBA/exec'
+  'https://script.google.com/macros/s/AKfycbwxWno9fiMMr0gv-OVirlPoWNeQYe-NBpc5t8raGkkMUTIrqNYzOrJca9bdZoUuAWaJ/exec'
 
 // L'agenda part en même temps que le reste du site : `prechargerAgenda()` est
 // appelée au démarrage (main.js), bien avant qu'on ouvre la page Agenda. La
