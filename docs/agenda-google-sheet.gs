@@ -100,7 +100,7 @@ const ONGLET_ARCHIVES = 'Archives'
 // Lien avec les événements Discord. La feuille n'interroge pas Discord : elle
 // lit le relevé publié par le dépôt du site (voir synchroniserDiscord).
 const URL_RELEVE_DISCORD =
-  'https://raw.githubusercontent.com/stillebx/guilde-des-songes/donnees/interesses.json'
+  'https://raw.githubusercontent.com/laguildedessonges/guilde-des-songes/donnees/interesses.json'
 const ORIGINE_DISCORD = 'Discord'
 
 // Types de l'onglet « Événements ». Les soirées mensuelles ont leur propre

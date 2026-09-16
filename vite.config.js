@@ -3,8 +3,8 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// GitHub Pages en sous-dossier (stillebx.github.io/guilde-des-songes/) exige
-// BASE_PATH=/guilde-des-songes/ ; sur un domaine propre, la racine suffit.
+// GitHub Pages en sous-dossier (laguildedessonges.github.io/guilde-des-songes/)
+// exige BASE_PATH=/guilde-des-songes/ ; sur un domaine propre, la racine suffit.
 const base = process.env.BASE_PATH || '/'
 
 // Les URL sont propres (/agenda) : un hébergeur statique doit renvoyer

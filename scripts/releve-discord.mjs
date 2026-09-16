@@ -30,7 +30,7 @@ if (!jeton || !serveur) {
 
 // Discord exige que les bots se présentent ainsi ; sans cet en-tête, sa
 // protection rejette la requête avant même de la lire.
-const USER_AGENT = 'DiscordBot (https://github.com/stillebx/guilde-des-songes, 1.0)'
+const USER_AGENT = 'DiscordBot (https://github.com/laguildedessonges/guilde-des-songes, 1.0)'
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms))
 
