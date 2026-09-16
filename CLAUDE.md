@@ -82,6 +82,30 @@ réseaux) vient de l'ancien site.
 
     Ces résumés font plusieurs dizaines de paragraphes : dépliés d'office, ils
     noieraient tout le reste du numéro.
+  - **Toute date se présente en mini carte de calendrier** — jour en grand, mois
+    et année dessous. Une entrée datée (une soirée du programme) s'écrit avec sa
+    carte à gauche et son texte à côté, sans répéter la date dans le texte :
+
+    ```
+    :::date 2026-09-11
+    Greg lance un scénario test à l'Annexe, à 19h30.
+    :::
+    ```
+
+    Deux jours d'affilée s'écrivent `2026-09-05..2026-09-06` (la carte affiche
+    « 5–6 »), et `sans-lien` retire le renvoi vers l'agenda — pour une date qui
+    n'y figure pas, comme un festival extérieur.
+
+  - **Série de dates sans texte** (les prochaines soirées mensuelles) : les
+    mêmes cartes, rangées en une ligne centrée, plutôt qu'une liste à puces
+    d'une ligne par date :
+
+    ```
+    :::soirees
+    2026-11-21
+    2026-12-12
+    :::
+    ```
 - **Partenaires** : `src/data/partners.js`.
 - **Réseaux et contact** : `src/socials.js` (partagé entête + pied de page).
 

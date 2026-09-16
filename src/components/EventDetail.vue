@@ -201,12 +201,6 @@ defineProps({
   text-align: center;
 }
 
-/* Le formulaire garde une largeur confortable sans s'étirer sur tout le cadre. */
-.detail--fenetre .signup,
-.detail--fenetre .signup__done {
-  width: min(27.5rem, 100%);
-}
-
 .detail__kind {
   color: var(--kind-color);
   font-size: 0.8rem;

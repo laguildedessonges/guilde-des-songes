@@ -302,6 +302,110 @@ onBeforeUnmount(() => clearTimeout(effacement))
   margin-top: 1rem;
 }
 
+/* Le cadre de la fenêtre garde une taille fixe, quel que soit son contenu : une
+   partie seule s'y centre donc, au lieu de laisser un grand vide sous elle. */
+:deep(.dialog__corps) {
+  display: flex;
+  flex-direction: column;
+}
+
+.jour__detail:only-child {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+/* Mini carte de calendrier : un feuillet, bandeau à la couleur d'accent en
+   haut, le jour en grand, le mois et l'année dessous. Sa largeur est celle du
+   plus long mois abrégé (« JANV. 27 ») : plus étroite, le mois passait à la
+   ligne sur certaines cartes et pas sur d'autres, et les cartes perdaient leur
+   alignement. Elle dépasse par ailleurs la cible tactile de référence. */
+.prose :deep(.carte-date) {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.1rem;
+  flex: none;
+  width: 4.1rem;
+  padding: 0.75rem 0.35rem 0.5rem;
+  position: relative;
+  border-radius: 0.6rem;
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-out-sm);
+  color: var(--text);
+  text-decoration: none;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+/* Bandeau supérieur, et les deux anneaux du feuillet posés dessus. */
+.prose :deep(.carte-date)::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0.5rem;
+  border-radius: 0.6rem 0.6rem 0 0;
+  background: var(--accent);
+}
+
+.prose :deep(.carte-date__anneaux) {
+  position: absolute;
+  top: 0.12rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.prose :deep(.carte-date__anneaux)::before,
+.prose :deep(.carte-date__anneaux)::after {
+  content: '';
+  width: 0.26rem;
+  height: 0.26rem;
+  border-radius: 999px;
+  background: var(--bg-panel);
+}
+
+.prose :deep(.carte-date__jour) {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.prose :deep(.carte-date__mois) {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Seules les cartes qui mènent quelque part réagissent au survol. */
+.prose :deep(.carte-date--lien:hover) {
+  box-shadow: var(--shadow-out-sm), var(--glow);
+  transform: translateY(-2px);
+}
+
+/* Entrée datée du programme : la carte à gauche, le texte à côté et centré en
+   face d'elle — aligné en haut, un texte d'une seule ligne laissait la carte
+   dépasser toute seule vers le bas. */
+.prose :deep(.programme) {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  margin: 0 0 1.25rem;
+}
+
+.prose :deep(.programme__texte) > :last-child {
+  margin-bottom: 0;
+}
+
+/* Série de dates sans texte : les cartes se rangent en une ligne centrée. */
+.prose :deep(.soirees) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+  margin: 0 0 1.25rem;
+}
+
 /* Résumé de session : trop long pour s'imposer d'un bloc, il arrive replié.
    Son titre et son premier paragraphe restent en vue ; le reste s'ouvre au
    clic, sans quitter le numéro ni charger quoi que ce soit. */
@@ -373,6 +477,13 @@ onBeforeUnmount(() => clearTimeout(effacement))
   .prose :deep(p),
   .prose :deep(.resume__apercu) {
     text-align: left;
+  }
+
+  /* Au téléphone, la carte passe au-dessus de son texte : côte à côte, il ne
+     restait qu'une colonne de quelques mots. */
+  .prose :deep(.programme) {
+    flex-direction: column;
+    gap: 0.6rem;
   }
 
   .prose :deep(.resume) {
