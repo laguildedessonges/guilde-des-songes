@@ -32,13 +32,14 @@ jobs:
 
       - run: npm ci
 
-      # Le site est servi dans un sous-dossier
-      # (laguildedessonges.github.io/guilde-des-songes/) :
-      # les chemins des fichiers et des liens doivent en tenir compte. Sur un domaine
-      # à la racine (laguildedessonges.net), mettre BASE_PATH: /
+      # Le site est servi à la racine du domaine (laguildedessonges.net) : les
+      # chemins des fichiers et des liens partent donc de « / ». Pour revenir à
+      # l'adresse GitHub en sous-dossier
+      # (laguildedessonges.github.io/guilde-des-songes/), remettre
+      # BASE_PATH: /guilde-des-songes/ — les deux ne peuvent pas cohabiter.
       - run: npm run build
         env:
-          BASE_PATH: /guilde-des-songes/
+          BASE_PATH: /
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
