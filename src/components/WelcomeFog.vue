@@ -45,16 +45,26 @@ float hash(vec2 p) {
   return fract((p3.x + p3.y) * p3.z);
 }
 
+// Valeur tirée pour un sommet du quadrillage. Le repli (période 289 cases)
+// garde les nombres passés au hachage petits : la dérive dans le temps ne les
+// fait plus grossir, et la brume reste identique quel que soit le moment où on
+// ouvre la page. Il doit porter sur le sommet, jamais sur la case : replier
+// floor(p) puis lire le voisin « + 1 » bordait la case 288 avec le hachage de
+// 289 au lieu de celui de 0 — soit une couture verticale franche, qui
+// traversait lentement l'écran au fil de la dérive. Le + 0.5 écarte le sommet
+// (0, 0), que ce hachage renvoie exactement à 0 : sans lui, les cinq octaves
+// s'y annulent ensemble et creusent un trou net dans la brume.
+float cell(vec2 sommet) {
+  return hash(mod(sommet, 289.0) + 0.5);
+}
+
 float noise(vec2 p) {
-  // Les coordonnées de case sont repliées (période 289 cases) : la dérive dans
-  // le temps ne fait plus grossir les nombres passés au hachage, et la brume
-  // reste identique quel que soit le moment où on ouvre la page.
-  vec2 i = mod(floor(p), 289.0);
+  vec2 i = floor(p);
   vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(
-    mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
-    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+    mix(cell(i + vec2(0.0, 0.0)), cell(i + vec2(1.0, 0.0)), u.x),
+    mix(cell(i + vec2(0.0, 1.0)), cell(i + vec2(1.0, 1.0)), u.x),
     u.y
   );
 }
