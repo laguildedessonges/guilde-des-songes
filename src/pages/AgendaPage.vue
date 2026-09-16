@@ -85,6 +85,21 @@ function placesLabel(event) {
   return `${restantes} place${restantes > 1 ? 's' : ''} restante${restantes > 1 ? 's' : ''}`
 }
 
+// À défaut de places annoncées, le relevé se voit quand même : savoir que sept
+// personnes se sont dites intéressées renseigne, même sans quota. Le compteur
+// de places, quand il existe, dit déjà tout — l'information ne s'ajoute pas à
+// lui, elle le remplace. Le libellé suit l'origine du décompte : les intéressés
+// viennent de l'événement Discord, les inscrits du formulaire du site.
+function interetLabel(event) {
+  if (placesLabel(event)) return ''
+
+  const n = event.inscrits || 0
+  if (!n) return ''
+
+  if (event.signup) return `${n} intéressé·e${n > 1 ? 's' : ''} sur Discord`
+  return `${n} inscrit·e${n > 1 ? 's' : ''}`
+}
+
 function estComplet(event) {
   return placesRestantes(event) === 0
 }
@@ -289,6 +304,10 @@ function formatShortDate(iso) {
               {{ placesLabel(item) }}
             </p>
 
+            <p v-if="interetLabel(item)" class="detail__interest">
+              {{ interetLabel(item) }}
+            </p>
+
             <p v-if="estComplet(item)" class="detail__closed">
               C'est complet. Écrivez-nous sur le Discord pour la liste d'attente.
             </p>
@@ -346,6 +365,10 @@ function formatShortDate(iso) {
               :class="{ 'detail__seats--complet': estComplet(modalEvent) }"
             >
               {{ placesLabel(modalEvent) }}
+            </p>
+
+            <p v-if="interetLabel(modalEvent)" class="detail__interest">
+              {{ interetLabel(modalEvent) }}
             </p>
 
             <p v-if="estComplet(modalEvent)" class="detail__closed">
@@ -628,15 +651,25 @@ function formatShortDate(iso) {
   display: flex;
 }
 
-.detail__seats {
+.detail__seats,
+.detail__interest {
   display: inline-block;
   margin-bottom: 1rem;
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
   box-shadow: var(--shadow-in-sm);
+  font-size: 0.95rem;
+}
+
+.detail__seats {
   color: var(--accent);
   font-weight: 700;
-  font-size: 0.95rem;
+}
+
+/* Le relevé est une information, pas un quota : même pastille que le compteur
+   de places, mais en retrait, pour qu'il ne se lise pas comme une jauge. */
+.detail__interest {
+  color: var(--text-muted);
 }
 
 .detail__past,
