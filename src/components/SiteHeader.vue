@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import IconGlyph from './IconGlyph.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import SiteSearch from './SiteSearch.vue'
 import { socials, openContact } from '../socials.js'
 
 // Les sections de l'accueil sont regroupées dans le déroulant « Accueil »
@@ -113,6 +114,9 @@ watch(() => [route.path, route.hash], closeAll)
       </nav>
 
       <div class="header__actions">
+        <!-- La recherche reste hors du menu déroulant : on doit pouvoir y venir
+             d'un geste, au téléphone comme ailleurs. -->
+        <SiteSearch />
         <!-- En mobile, le thème reste dans la barre, à gauche du menu : c'est un
              réglage d'affichage, pas une entrée de navigation. -->
         <ThemeToggle class="header__theme" />

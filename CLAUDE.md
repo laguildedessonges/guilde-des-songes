@@ -17,6 +17,12 @@ réseaux) vient de l'ancien site.
 - Police : Garamond partout (EB Garamond via Google Fonts dans `index.html`), titres en gras.
 - Icônes : `IconGlyph.vue` (SVG au trait, y compris les logos Discord/Instagram/Facebook),
   toujours posées dans une pastille en creux (`--shadow-in-sm`).
+- **Recherche** : `src/data/recherche.js` construit l'index dans le navigateur —
+  le site est statique, il n'y a pas de serveur à interroger. Pages, sections de
+  l'accueil, numéros de la gazette, lettre des fondateur·ices, affiches,
+  partenaires et ressources y entrent au build ; les parties de l'agenda s'y
+  ajoutent à l'ouverture, puisqu'elles viennent de la feuille. Ajouter une page
+  au site, c'est ajouter sa ligne dans `PAGES`.
 
 ## Contenu à mettre à jour
 
