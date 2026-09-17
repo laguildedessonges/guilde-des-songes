@@ -136,4 +136,8 @@ avec des URL propres, les liens et les fichiers doivent connaître leur dossier.
 
 - Tout le contenu est en français ; pas d'i18n.
 - Vérifier la lisibilité à chaque modif : rien ne déborde ni ne se fait rogner, y compris en mobile (~375px).
+- **Les cartes d'une même liste ont toutes la même taille** : hauteur de rangée
+  commune, vignettes au même format (`aspect-ratio` + `object-fit`), et l'action
+  calée en bas quelle que soit la longueur du texte. Des cartes qui se décalent
+  parce que leurs images ou leurs légendes diffèrent donnent une grille bancale.
 - Commit/push uniquement quand l'utilisateur le demande ; travailler sur une branche dédiée puis merger sur main.

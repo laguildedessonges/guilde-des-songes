@@ -31,6 +31,13 @@ import IconGlyph from './IconGlyph.vue'
             et nous vous accompagnerons dans votre démarche d'inscription.
           </p>
         </div>
+
+        <!-- L'entrée vers l'histoire de la Guilde, dans la foulée du texte. Elle
+             mène à sa page plutôt que de se déplier ici : près de deux mille
+             mots repousseraient tout le reste de l'accueil hors de vue. -->
+        <RouterLink class="btn btn--primary about__lettre" :to="{ name: 'history' }">
+          Une lettre des fondateurs de la Guilde
+        </RouterLink>
       </div>
       <ul class="about__values">
         <li class="about__value">
@@ -55,11 +62,18 @@ import IconGlyph from './IconGlyph.vue'
           </span>
         </li>
       </ul>
+
     </div>
   </section>
 </template>
 
 <style scoped>
+/* L'entrée vers l'histoire suit le dernier paragraphe, sans s'en éloigner. */
+.about__lettre {
+  align-self: start;
+  margin-top: 1.5rem;
+}
+
 .about {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);

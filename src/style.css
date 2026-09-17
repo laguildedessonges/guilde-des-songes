@@ -328,3 +328,104 @@ body {
 .social-btn:active {
   box-shadow: var(--shadow-in-sm);
 }
+
+/* Texte long rendu depuis du Markdown — un numéro de la gazette, la lettre des
+   fondateur·ices : un panneau de lecture, et la mise en forme qui va avec.
+   Partagé par les pages qui en affichent, plutôt que recopié dans chacune. */
+.prose {
+  background: var(--bg-panel);
+  border-radius: var(--radius);
+  padding: 2rem 2.25rem;
+  box-shadow: var(--shadow-out);
+}
+
+.prose h2 {
+  font-size: 1.35rem;
+  margin: 2rem 0 0.75rem;
+}
+
+.prose h3 {
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.6rem;
+}
+
+.prose h2:first-child,
+.prose h3:first-child {
+  margin-top: 0;
+}
+
+.prose p {
+  color: var(--text-muted);
+  text-align: justify;
+  margin-bottom: 1rem;
+}
+
+/* Renvois du texte (vers l'agenda, par exemple) : aux couleurs du site. */
+.prose a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+.prose ul,
+.prose ol {
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  padding-left: 1.4rem;
+}
+
+.prose li {
+  margin-bottom: 0.4rem;
+}
+
+/* Encadré d'avertissement : centré, il se détache du corps justifié autour et
+   se lit d'un coup d'œil, même quand il tient sur deux lignes. */
+.prose blockquote {
+  margin: 0 0 1rem;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-in-sm);
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.prose blockquote p {
+  margin-bottom: 0;
+  text-align: center;
+}
+
+/* Deux phrases dans l'encadré : la seconde passe à la ligne, quelle que soit la
+   largeur — un simple retour forcé se serait fondu dans le repli du texte. */
+.prose blockquote p + p {
+  margin-top: 0.4rem;
+}
+
+.prose img {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-out-sm);
+}
+
+.prose hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 2rem 0;
+}
+
+
+@media (max-width: 620px) {
+  .prose {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+/* Lien de retour en tête d'une page de lecture (un numéro, la lettre). */
+.back {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}

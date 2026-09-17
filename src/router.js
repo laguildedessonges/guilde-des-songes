@@ -5,6 +5,7 @@ import AgendaPage from './pages/AgendaPage.vue'
 import GazettePage from './pages/GazettePage.vue'
 import GazetteIssuePage from './pages/GazetteIssuePage.vue'
 import ResourcesPage from './pages/ResourcesPage.vue'
+import HistoryPage from './pages/HistoryPage.vue'
 
 // Hauteur à dégager au-dessus d'une ancre : l'entête collante, plus une
 // respiration. On mesure l'entête, seule mesure sûre — `--band-height` est
@@ -40,6 +41,8 @@ export const router = createRouter({
     { path: '/gazette', name: 'gazette', component: GazettePage },
     { path: '/gazette/:slug', name: 'gazette-issue', component: GazetteIssuePage },
     { path: '/ressources', name: 'resources', component: ResourcesPage },
+    // Ouverte depuis la pastille de l'accueil, pas depuis la barre de menus.
+    { path: '/notre-histoire', name: 'history', component: HistoryPage },
     // URL inconnue : retour à l'accueil plutôt qu'une page blanche.
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
