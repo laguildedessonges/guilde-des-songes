@@ -1,4 +1,4 @@
-import { copyFileSync } from 'node:fs'
+import { copyFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -18,8 +18,44 @@ const fallback404 = {
   },
 }
 
+// Plan du site, écrit au build : les moteurs de recherche ne peuvent pas
+// deviner les URL d'une application à routeur, faute de liens à suivre depuis
+// un fichier statique. Les numéros de la gazette y entrent d'eux-mêmes, un
+// fichier déposé dans src/gazette/ suffisant à les publier.
+const DOMAINE = 'https://laguildedessonges.net'
+
+const planDuSite = {
+  name: 'plan-du-site',
+  closeBundle() {
+    const racine = import.meta.dirname
+    const numeros = readdirSync(resolve(racine, 'src/gazette'))
+      .filter((nom) => nom.endsWith('.md'))
+      .map((nom) => `/gazette/${nom.replace(/\.md$/, '')}`)
+
+    const pages = [
+      '/',
+      '/agenda',
+      '/gazette',
+      '/partenaires',
+      '/ressources',
+      '/notre-histoire',
+      ...numeros,
+    ]
+
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+      ...pages.map((page) => `  <url><loc>${DOMAINE}${page}</loc></url>`),
+      '</urlset>',
+      '',
+    ].join('\n')
+
+    writeFileSync(resolve(racine, 'dist/sitemap.xml'), xml)
+  },
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base,
-  plugins: [vue(), fallback404],
+  plugins: [vue(), fallback404, planDuSite],
 })
