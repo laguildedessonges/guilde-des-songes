@@ -4,7 +4,9 @@
 // feuille a répondu.
 //
 // La loupe s'étire vers la gauche en champ de saisie, plutôt que d'ouvrir une
-// fenêtre : la barre reste la barre, et les résultats tombent dessous.
+// fenêtre : la barre reste la barre, et les résultats tombent dessous. Le
+// composant annonce son ouverture à l'entête, qui efface pendant ce temps les
+// pastilles que le champ recouvre.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import IconGlyph from './IconGlyph.vue'
@@ -13,6 +15,7 @@ import { agendaRecu, fetchAgenda } from '../data/sheet.js'
 import { typo } from '../typographie.js'
 
 const router = useRouter()
+const emit = defineEmits(['bascule'])
 
 const ouverte = ref(false)
 const requete = ref('')
@@ -50,8 +53,10 @@ function mesurer() {
   styleBoite.value = {
     right: `${Math.round(bouton.getBoundingClientRect().right - bordDroit)}px`,
     // Un plafond, pas une largeur : le champ garde sa taille habituelle et ne
-    // fait que se raccourcir quand le menu arrive à sa hauteur.
-    maxWidth: `${Math.max(0, Math.round(bordDroit - finDuMenu - 12))}px`,
+    // fait que se raccourcir quand le menu arrive à sa hauteur. Il passe par
+    // une variable, et non par `max-width` : le style en ligne l'emporterait
+    // sur les classes de transition, et le champ s'ouvrirait d'un coup.
+    '--recherche-place': `${Math.max(0, Math.round(bordDroit - finDuMenu - 12))}px`,
   }
 }
 
@@ -94,12 +99,14 @@ onBeforeUnmount(() => {
 
 // Changer de page referme la recherche, y compris par la touche Retour.
 watch(() => router.currentRoute.value.fullPath, fermer)
+
+watch(ouverte, (valeur) => emit('bascule', valeur))
 </script>
 
 <template>
   <div ref="racine" class="recherche">
     <button
-      class="social-btn"
+      class="social-btn recherche__bouton"
       :class="{ 'recherche__bouton--efface': ouverte }"
       aria-label="Rechercher sur le site"
       title="Rechercher"
@@ -109,37 +116,41 @@ watch(() => router.currentRoute.value.fullPath, fermer)
       <IconGlyph name="search" />
     </button>
 
-    <div v-if="ouverte" class="recherche__boite" :style="styleBoite">
-      <IconGlyph class="recherche__loupe" name="search" />
-      <input
-        ref="champ"
-        v-model="requete"
-        class="recherche__champ"
-        type="search"
-        placeholder="Une partie, un numéro, un lieu…"
-        aria-label="Votre recherche"
-        @keydown.esc="fermer"
-      />
-      <button class="recherche__fermer" aria-label="Fermer la recherche" @click="fermer">×</button>
-    </div>
+    <Transition name="boite">
+      <div v-if="ouverte" class="recherche__boite" :style="styleBoite">
+        <IconGlyph class="recherche__loupe" name="search" />
+        <input
+          ref="champ"
+          v-model="requete"
+          class="recherche__champ"
+          type="search"
+          placeholder="Une partie, un numéro, un lieu…"
+          aria-label="Votre recherche"
+          @keydown.esc="fermer"
+        />
+        <button class="recherche__fermer" aria-label="Fermer la recherche" @click="fermer">×</button>
+      </div>
+    </Transition>
 
-    <div v-if="ouverte && requete.trim()" class="recherche__resultats">
-      <p v-if="!resultats.length" class="recherche__vide">
-        Rien ne correspond à «&nbsp;{{ requete.trim() }}&nbsp;».
-      </p>
+    <Transition name="resultats">
+      <div v-if="ouverte && requete.trim()" class="recherche__resultats">
+        <p v-if="!resultats.length" class="recherche__vide">
+          Rien ne correspond à «&nbsp;{{ requete.trim() }}&nbsp;».
+        </p>
 
-      <ul v-else class="recherche__liste">
-        <li v-for="resultat in resultats" :key="resultat.rubrique + resultat.titre">
-          <button class="resultat" @click="allerA(resultat)">
-            <span class="resultat__rubrique">
-              {{ resultat.rubrique }}<template v-if="resultat.detail"> · {{ resultat.detail }}</template>
-            </span>
-            <span class="resultat__titre">{{ typo(resultat.titre) }}</span>
-            <span class="resultat__extrait">{{ typo(extrait(resultat, requete)) }}</span>
-          </button>
-        </li>
-      </ul>
-    </div>
+        <ul v-else class="recherche__liste">
+          <li v-for="resultat in resultats" :key="resultat.rubrique + resultat.titre">
+            <button class="resultat" @click="allerA(resultat)">
+              <span class="resultat__rubrique">
+                {{ resultat.rubrique }}<template v-if="resultat.detail"> · {{ resultat.detail }}</template>
+              </span>
+              <span class="resultat__titre">{{ typo(resultat.titre) }}</span>
+              <span class="resultat__extrait">{{ typo(extrait(resultat, requete)) }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -151,7 +162,14 @@ watch(() => router.currentRoute.value.fullPath, fermer)
   display: flex;
 }
 
+/* La loupe s'efface pendant que le champ prend sa place : elle est dessous, et
+   deux loupes l'une sur l'autre se verraient au passage. */
+.recherche__bouton {
+  transition: opacity 0.2s ease;
+}
+
 .recherche__bouton--efface {
+  opacity: 0;
   visibility: hidden;
 }
 
@@ -165,11 +183,40 @@ watch(() => router.currentRoute.value.fullPath, fermer)
   align-items: center;
   gap: 0.5rem;
   width: min(20rem, 68vw);
+  max-width: var(--recherche-place, none);
   min-height: 2.75rem;
+  overflow: hidden;
   padding: 0 0.6rem 0 1rem;
   border-radius: 999px;
   background: var(--bg);
   box-shadow: var(--shadow-in-sm);
+}
+
+/* Le champ sort de la pastille et s'étire vers la gauche — d'où une largeur
+   animée, et non un fondu : c'est le geste qu'annonce la loupe. Le plafond
+   mesuré passe par `--recherche-place`, que ces classes peuvent donc écraser
+   le temps de l'ouverture. */
+.boite-enter-active,
+.boite-leave-active {
+  transition: max-width 0.28s ease, opacity 0.28s ease;
+}
+
+.boite-enter-from,
+.boite-leave-to {
+  max-width: 2.375rem;
+  opacity: 0;
+}
+
+/* Les résultats, eux, ne s'étirent pas : ils se posent sous la barre. */
+.resultats-enter-active,
+.resultats-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.resultats-enter-from,
+.resultats-leave-to {
+  opacity: 0;
+  transform: translateY(-0.4rem);
 }
 
 .recherche__loupe {

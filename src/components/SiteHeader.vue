@@ -26,6 +26,10 @@ const pages = [
 const menuOpen = ref(false)
 const homeOpen = ref(false)
 
+// Ouverte, la recherche recouvre les pastilles des réseaux : elles s'effacent
+// pendant ce temps plutôt que de se deviner sous le champ.
+const rechercheOuverte = ref(false)
+
 function closeAll() {
   menuOpen.value = false
   homeOpen.value = false
@@ -113,10 +117,10 @@ watch(() => [route.path, route.hash], closeAll)
         </div>
       </nav>
 
-      <div class="header__actions">
+      <div class="header__actions" :class="{ 'header__actions--recherche': rechercheOuverte }">
         <!-- La recherche reste hors du menu déroulant : on doit pouvoir y venir
              d'un geste, au téléphone comme ailleurs. -->
-        <SiteSearch />
+        <SiteSearch @bascule="rechercheOuverte = $event" />
         <!-- En mobile, le thème reste dans la barre, à gauche du menu : c'est un
              réglage d'affichage, pas une entrée de navigation. -->
         <ThemeToggle class="header__theme" />
@@ -288,6 +292,14 @@ watch(() => [route.path, route.hash], closeAll)
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  transition: opacity 0.28s ease, visibility 0.28s;
+}
+
+/* `visibility`, et non `display` : la barre ne doit pas se réorganiser sous le
+   champ qui s'ouvre. */
+.header__actions--recherche .header__socials {
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* Doublon du sélecteur de thème réservé à la barre mobile : sur grand écran,
