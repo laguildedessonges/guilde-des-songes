@@ -29,7 +29,10 @@
   --font-body: 'EB Garamond', 'Garamond', serif;
 
   --radius: 1.125rem;
-  --content-width: 66.25rem;
+  /* Gouttière laissée de part et d'autre du contenu. La colonne prend tout le
+     reste : plafonnée, elle laissait un tiers à 40 % de l'écran en brume sur
+     les moniteurs larges. En rem, la gouttière grandit avec le reste. */
+  --content-gutter: 3rem;
   /* Échelle typographique partagée : mêmes tailles pour le titre du hero, les
      titres de sections (« Qui sommes-nous »…) et les titres des autres pages,
      et une taille unique pour toutes les phrases d'accroche. */
@@ -199,7 +202,7 @@ img {
 }
 
 .container {
-  width: min(var(--content-width), 100% - 3rem);
+  width: calc(100% - var(--content-gutter));
   margin-inline: auto;
 }
 
