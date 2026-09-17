@@ -173,14 +173,6 @@ onBeforeUnmount(() => clearTimeout(effacement))
 </template>
 
 <style scoped>
-.back {
-  display: inline-block;
-  margin-bottom: 1.5rem;
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
 .issue-head {
   margin-bottom: 2rem;
 }
@@ -211,89 +203,6 @@ onBeforeUnmount(() => clearTimeout(effacement))
   color: var(--text-muted);
   font-size: 0.95rem;
   overflow-wrap: anywhere;
-}
-
-/* Mise en forme du Markdown rendu : v-html échappe au scoping, d'où :deep. */
-.prose {
-  background: var(--bg-panel);
-  border-radius: var(--radius);
-  padding: 2rem 2.25rem;
-  box-shadow: var(--shadow-out);
-}
-
-.prose :deep(h2) {
-  font-size: 1.35rem;
-  margin: 2rem 0 0.75rem;
-}
-
-.prose :deep(h3) {
-  font-size: 1.15rem;
-  margin: 1.5rem 0 0.6rem;
-}
-
-.prose :deep(h2:first-child),
-.prose :deep(h3:first-child) {
-  margin-top: 0;
-}
-
-.prose :deep(p) {
-  color: var(--text-muted);
-  text-align: justify;
-  margin-bottom: 1rem;
-}
-
-/* Renvois du numéro (vers l'agenda, par exemple) : aux couleurs du site. */
-.prose :deep(a) {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  text-underline-offset: 0.2em;
-}
-
-.prose :deep(ul),
-.prose :deep(ol) {
-  color: var(--text-muted);
-  margin: 0 0 1rem;
-  padding-left: 1.4rem;
-}
-
-.prose :deep(li) {
-  margin-bottom: 0.4rem;
-}
-
-/* Encadré d'avertissement : centré, il se détache du corps justifié autour et
-   se lit d'un coup d'œil, même quand il tient sur deux lignes. */
-.prose :deep(blockquote) {
-  margin: 0 0 1rem;
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-in-sm);
-  color: var(--text-muted);
-  font-style: italic;
-  text-align: center;
-}
-
-.prose :deep(blockquote p) {
-  margin-bottom: 0;
-  text-align: center;
-}
-
-/* Deux phrases dans l'encadré : la seconde passe à la ligne, quelle que soit la
-   largeur — un simple retour forcé se serait fondu dans le repli du texte. */
-.prose :deep(blockquote p + p) {
-  margin-top: 0.4rem;
-}
-
-.prose :deep(img) {
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-out-sm);
-}
-
-.prose :deep(hr) {
-  border: none;
-  height: 1px;
-  background: var(--border);
-  margin: 2rem 0;
 }
 
 /* Plusieurs parties le même jour : les panneaux s'empilent dans la fenêtre, qui
@@ -468,10 +377,6 @@ onBeforeUnmount(() => clearTimeout(effacement))
 }
 
 @media (max-width: 620px) {
-  .prose {
-    padding: 1.5rem 1.25rem;
-  }
-
   /* Au téléphone, la carte passe au-dessus de son texte : côte à côte, il ne
      restait qu'une colonne de quelques mots. */
   .prose :deep(.programme) {

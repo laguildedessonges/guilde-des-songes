@@ -44,6 +44,7 @@
 //   :::
 import { marked } from 'marked'
 import { typo } from '../typographie.js'
+import { liensExternesACote, typographier } from './prose.js'
 
 const files = import.meta.glob('../gazette/*.md', { query: '?raw', import: 'default', eager: true })
 
@@ -153,14 +154,6 @@ export const issues = Object.entries(files)
   // Plus récent en premier
   .sort((a, b) => b.date.localeCompare(a.date))
 
-// Typographie appliquée au texte seul : les balises restent intactes.
-function typographier(html) {
-  return html
-    .split(/(<[^>]*>)/)
-    .map((morceau) => (morceau.startsWith('<') ? morceau : typo(morceau)))
-    .join('')
-}
-
 function enHtml(markdown) {
   const resumes = []
   const rangees = []
@@ -224,11 +217,6 @@ function avecCheminDePublication(html) {
   return html.replace(/href="\/(?!\/)/g, `href="${base}`)
 }
 
-// Un renvoi hors du site (le Discord de la Guilde, par exemple) s'ouvre à côté :
-// suivi dans le même onglet, il ferait perdre au lecteur le numéro qu'il lisait.
-function liensExternesACote(html) {
-  return html.replace(/<a href="(https?:\/\/[^"]+)"/g, '<a href="$1" target="_blank" rel="noopener"')
-}
 
 export function findIssue(slug) {
   return issues.find((issue) => issue.slug === slug)
