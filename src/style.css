@@ -29,7 +29,12 @@
   --font-body: 'EB Garamond', 'Garamond', serif;
 
   --radius: 1.125rem;
-  --content-width: 66.25rem;
+  /* Largeur de la colonne, en proportion de l'écran. Plafonnée, elle laissait
+     de vastes bandes vides sur les moniteurs larges — 381 px de chaque côté à
+     1920 px. En proportion, la marge suit la fenêtre et c'est le contenu qui
+     s'adapte, comme il le fait déjà au téléphone : 87 %, soit exactement la
+     proportion qu'y occupe le site, appliquée à toutes les tailles. */
+  --content-width: 87%;
   /* Échelle typographique partagée : mêmes tailles pour le titre du hero, les
      titres de sections (« Qui sommes-nous »…) et les titres des autres pages,
      et une taille unique pour toutes les phrases d'accroche. */
@@ -199,7 +204,7 @@ img {
 }
 
 .container {
-  width: min(var(--content-width), 100% - 3rem);
+  width: var(--content-width);
   margin-inline: auto;
 }
 
