@@ -21,8 +21,65 @@ function normaliser(texte) {
     .trim()
 }
 
+// Même pliage que `normaliser`, mais caractère pour caractère : rien n'est
+// retiré ni fusionné, donc les positions correspondent à celles du texte
+// d'origine. C'est ce qu'il faut pour découper un extrait autour d'un mot —
+// `normaliser` raccourcit le texte (« , » devient « »), et la fenêtre se
+// décalait d'autant que le passage comptait de ponctuation.
+function plier(texte) {
+  let plie = ''
+  for (const caractere of String(texte || '')) {
+    const base = caractere
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+    plie +=
+      base.length === caractere.length && /^[a-z0-9]+$/.test(base)
+        ? base
+        : ' '.repeat(caractere.length)
+  }
+  return plie
+}
+
+// Le convertisseur Markdown échappe apostrophes et chevrons : sans les rendre
+// à leur caractère, « l'Annexe » se lit « l&#39; Annexe » dans les extraits, et
+// « 39 » devient un mot cherchable.
+function sansEntites(texte) {
+  if (typeof document === 'undefined') return texte
+  const zone = document.createElement('textarea')
+  zone.innerHTML = texte
+  return zone.value
+}
+
 function sansBalises(html) {
-  return String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return sansEntites(String(html || '').replace(/<[^>]*>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// Les sources écrites en Markdown entrent telles quelles dans l'index : sans
+// ce nettoyage, on cherche dans les astérisques et on les lit dans l'extrait
+// (« **La Guilde des Songes** — association… »).
+function sansMiseEnForme(source) {
+  return String(source || '')
+    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/^:::.*$/gm, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, '')
+    .replace(/^[ \t]{0,3}>[ \t]?/gm, '')
+    .replace(/^[ \t]{0,3}(?:[-*+]|\d+\.)[ \t]+/gm, '')
+    .replace(/^[ \t]{0,3}(?:[-*_][ \t]*){3,}$/gm, ' ')
+    // Seules les marques appariées tombent : un astérisque isolé appartient au
+    // texte (le numéro de Cerfa « 13972*02 » de la lettre des fondateurs).
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\*([^\s*][^*]*?)\*/g, '$1')
+    .replace(/_([^\s_][^_]*?)_/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 // Pages et sections : ce que le menu propose, avec les mots qu'on emploierait
@@ -90,7 +147,7 @@ const INDEX = [
   {
     rubrique: 'Notre histoire',
     titre: 'Une lettre des fondateurs de la Guilde',
-    texte: lettre,
+    texte: sansMiseEnForme(lettre),
     to: { name: 'history' },
   },
 
@@ -179,7 +236,7 @@ export function extrait(entree, requete) {
   const texte = entree.texte.replace(/\s+/g, ' ').trim()
   if (!mot) return texte.slice(0, 120)
 
-  const place = normaliser(texte).indexOf(mot)
+  const place = plier(texte).indexOf(mot)
   if (place === -1) return texte.slice(0, 120)
 
   const debut = Math.max(0, place - 50)

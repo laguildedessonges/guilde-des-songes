@@ -7,6 +7,10 @@
 // fenêtre : la barre reste la barre, et les résultats tombent dessous. Le
 // composant annonce son ouverture à l'entête, qui efface pendant ce temps les
 // pastilles que le champ recouvre.
+//
+// En mobile (`en-ligne`), il n'y a plus de place à prendre dans la barre : la
+// recherche devient la première ligne du menu déroulant, champ déjà ouvert sur
+// toute la colonne, et ses résultats se posent par-dessus les liens du menu.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import IconGlyph from './IconGlyph.vue'
@@ -17,7 +21,10 @@ import { typo } from '../typographie.js'
 const router = useRouter()
 const emit = defineEmits(['bascule'])
 
-const ouverte = ref(false)
+// `enLigne` : la recherche est posée dans la colonne du menu, pas dans la barre.
+const props = defineProps({ enLigne: { type: Boolean, default: false } })
+
+const ouverte = ref(props.enLigne)
 const requete = ref('')
 const champ = ref(null)
 const racine = ref(null)
@@ -34,6 +41,8 @@ const resultats = computed(() => chercher(requete.value, evenements.value))
 // replié dans le burger, rien de tout cela n'a lieu d'être : le champ reprend
 // son ancrage sur la loupe.
 function mesurer() {
+  // Posé dans le menu, le champ tient la largeur de la colonne : rien à mesurer.
+  if (props.enLigne) return
   const bouton = racine.value?.querySelector('.social-btn')
   const entete = racine.value?.closest('.header')
   const colonne = entete?.querySelector('.container')
@@ -73,8 +82,11 @@ async function ouvrir() {
   }
 }
 
+// Dans le menu, le champ n'a pas à se replier : il est la première ligne de la
+// colonne, et se refermer le ferait disparaître au milieu des liens. Fermer,
+// là, c'est effacer la recherche.
 function fermer() {
-  ouverte.value = false
+  ouverte.value = props.enLigne
   requete.value = ''
 }
 
@@ -85,6 +97,7 @@ function allerA(resultat) {
 
 // Un clic ailleurs referme la recherche, comme n'importe quel déroulant.
 function surClicAilleurs(evenement) {
+  if (props.enLigne) return
   if (ouverte.value && racine.value && !racine.value.contains(evenement.target)) fermer()
 }
 
@@ -100,11 +113,13 @@ onBeforeUnmount(() => {
 // Changer de page referme la recherche, y compris par la touche Retour.
 watch(() => router.currentRoute.value.fullPath, fermer)
 
-watch(ouverte, (valeur) => emit('bascule', valeur))
+watch(ouverte, (valeur) => {
+  if (!props.enLigne) emit('bascule', valeur)
+})
 </script>
 
 <template>
-  <div ref="racine" class="recherche">
+  <div ref="racine" class="recherche" :class="{ 'recherche--ligne': enLigne }">
     <button
       class="social-btn recherche__bouton"
       :class="{ 'recherche__bouton--efface': ouverte }"
@@ -128,7 +143,14 @@ watch(ouverte, (valeur) => emit('bascule', valeur))
           aria-label="Votre recherche"
           @keydown.esc="fermer"
         />
-        <button class="recherche__fermer" aria-label="Fermer la recherche" @click="fermer">×</button>
+        <button
+          v-if="!enLigne || requete"
+          class="recherche__fermer"
+          :aria-label="enLigne ? 'Effacer la recherche' : 'Fermer la recherche'"
+          @click="fermer"
+        >
+          ×
+        </button>
       </div>
     </Transition>
 
@@ -330,5 +352,34 @@ watch(ouverte, (valeur) => emit('bascule', valeur))
   color: var(--text-muted);
   font-size: 0.88rem;
   line-height: 1.4;
+}
+
+/* ---- Dans la colonne du menu (mobile) ----------------------------------
+   Plus de loupe à déplier : le champ est déjà là, en tête du menu, et tient
+   toute la largeur de la colonne. Les résultats tombent juste sous lui et
+   recouvrent les liens, comme ils recouvrent la page sur grand écran. */
+.recherche--ligne {
+  display: block;
+  padding-bottom: 0.35rem;
+}
+
+.recherche--ligne .recherche__bouton {
+  display: none;
+}
+
+.recherche--ligne .recherche__boite {
+  position: static;
+  transform: none;
+  width: 100%;
+  max-width: none;
+}
+
+.recherche--ligne .recherche__resultats {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: auto;
+  left: 0;
+  width: 100%;
+  max-height: min(58vh, 26rem);
 }
 </style>
