@@ -30,6 +30,22 @@ const homeOpen = ref(false)
 // pendant ce temps plutôt que de se deviner sous le champ.
 const rechercheOuverte = ref(false)
 
+// La barre étroite n'a pas de place où déplier un champ : en dessous de la
+// largeur du menu complet, la recherche passe en tête de la colonne du menu.
+// Une seule instance à la fois, montée d'un côté ou de l'autre — deux champs
+// tiendraient deux recherches.
+const largeurMenu = window.matchMedia('(max-width: 1040px)')
+const rechercheAuMenu = ref(largeurMenu.matches)
+
+// On écoute aussi `resize` : le seul `change` du media query ne se déclenche
+// pas partout (émulation d'écran, certains zooms), et la recherche resterait
+// alors dans le menu déplié en travers de la barre large.
+function surLargeur() {
+  if (rechercheAuMenu.value === largeurMenu.matches) return
+  rechercheAuMenu.value = largeurMenu.matches
+  rechercheOuverte.value = false
+}
+
 function closeAll() {
   menuOpen.value = false
   homeOpen.value = false
@@ -43,8 +59,16 @@ function onDocumentClick(event) {
   if (headerEl.value && !headerEl.value.contains(event.target)) closeAll()
 }
 
-onMounted(() => document.addEventListener('click', onDocumentClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+  largeurMenu.addEventListener('change', surLargeur)
+  window.addEventListener('resize', surLargeur)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
+  largeurMenu.removeEventListener('change', surLargeur)
+  window.removeEventListener('resize', surLargeur)
+})
 
 const route = useRoute()
 watch(() => [route.path, route.hash], closeAll)
@@ -59,6 +83,11 @@ watch(() => [route.path, route.hash], closeAll)
       </RouterLink>
 
       <nav class="header__nav" :class="{ 'header__nav--open': menuOpen }" aria-label="Navigation principale">
+        <!-- En mobile, la recherche ouvre le menu : le champ tient la colonne,
+             et ses résultats se posent par-dessus les liens. La clé la remonte
+             à chaque ouverture du menu, pour un champ toujours vierge. -->
+        <SiteSearch v-if="rechercheAuMenu" :key="String(menuOpen)" class="header__nav-recherche" en-ligne />
+
         <!-- « Accueil » : lien vers la page + déroulant de ses sections -->
         <div
           class="header__group"
@@ -118,9 +147,9 @@ watch(() => [route.path, route.hash], closeAll)
       </nav>
 
       <div class="header__actions" :class="{ 'header__actions--recherche': rechercheOuverte }">
-        <!-- La recherche reste hors du menu déroulant : on doit pouvoir y venir
-             d'un geste, au téléphone comme ailleurs. -->
-        <SiteSearch @bascule="rechercheOuverte = $event" />
+        <!-- Sur grand écran, la loupe vit dans la barre : le champ s'y déplie
+             dans la place libre. En mobile, elle est passée dans le menu. -->
+        <SiteSearch v-if="!rechercheAuMenu" @bascule="rechercheOuverte = $event" />
         <!-- En mobile, le thème reste dans la barre, à gauche du menu : c'est un
              réglage d'affichage, pas une entrée de navigation. -->
         <ThemeToggle class="header__theme" />
@@ -280,6 +309,13 @@ watch(() => [route.path, route.hash], closeAll)
 
 .header__nav-socials {
   display: none;
+}
+
+/* Une ligne à part, au-dessus des liens, séparée d'eux par un filet léger. */
+.header__nav-recherche {
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--shadow-dark);
 }
 
 .header__actions {
