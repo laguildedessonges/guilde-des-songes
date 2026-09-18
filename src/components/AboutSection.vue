@@ -166,5 +166,12 @@ import IconGlyph from './IconGlyph.vue'
   .about {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* En colonne unique, l'entrée vers l'histoire se centre : calée à gauche,
+     elle pendait au bord d'un bloc dont tout le reste — les vignettes, leurs
+     pastilles, leurs légendes — est centré. */
+  .about__lettre {
+    align-self: center;
+  }
 }
 </style>

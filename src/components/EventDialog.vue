@@ -3,6 +3,7 @@
 // une description courte ou longue occupe le même cadre, et c'est l'intérieur
 // qui défile — avec le même curseur rouge que le reste du site.
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { deverrouillerLaPage, verrouillerLaPage } from '../verrou-defilement.js'
 
 const props = defineProps({
   // Une ou plusieurs lignes d'agenda (un même jour peut en porter plusieurs).
@@ -18,20 +19,15 @@ function surEchap(event) {
   if (event.key === 'Escape') emit('close')
 }
 
-// Tant que la fenêtre est ouverte, la page derrière ne défile pas.
-function verrouillerPage(actif) {
-  document.body.style.overflow = actif ? 'hidden' : ''
-}
-
 onMounted(() => {
   document.addEventListener('keydown', surEchap)
-  verrouillerPage(true)
+  verrouillerLaPage()
   panneau.value?.focus()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', surEchap)
-  verrouillerPage(false)
+  deverrouillerLaPage()
 })
 
 // Changer de jour sans fermer : on revient en haut de la fenêtre.
