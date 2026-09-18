@@ -5,6 +5,7 @@ import IconGlyph from './IconGlyph.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import SiteSearch from './SiteSearch.vue'
 import { socials, openContact } from '../socials.js'
+import { deverrouillerLaPage, verrouillerLaPage } from '../verrou-defilement.js'
 
 // Les sections de l'accueil sont regroupées dans le déroulant « Accueil »
 // pour garder une barre courte ; les autres pages restent au premier niveau.
@@ -44,6 +45,9 @@ function surLargeur() {
   if (rechercheAuMenu.value === largeurMenu.matches) return
   rechercheAuMenu.value = largeurMenu.matches
   rechercheOuverte.value = false
+  // Le burger disparaît en s'élargissant : un menu resté ouvert n'aurait plus
+  // de quoi se refermer, et la page derrière resterait figée.
+  closeAll()
 }
 
 function closeAll() {
@@ -68,6 +72,14 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick)
   largeurMenu.removeEventListener('change', surLargeur)
   window.removeEventListener('resize', surLargeur)
+})
+
+// Déplié, le menu occupe l'écran : la page derrière ne doit pas répondre au
+// défilement, sinon elle glisse sous le panneau au premier réflexe du pouce.
+// Elle se remet à défiler quand on quitte le menu.
+watch(menuOpen, (ouvert) => (ouvert ? verrouillerLaPage() : deverrouillerLaPage()))
+onBeforeUnmount(() => {
+  if (menuOpen.value) deverrouillerLaPage()
 })
 
 const route = useRoute()
@@ -365,18 +377,36 @@ watch(() => [route.path, route.hash], closeAll)
     justify-content: space-between;
   }
 
+  /* Le menu prend l'écran, de la barre jusqu'en bas : c'est un panneau, pas
+     un volet posé sur la page. Ancré à la fenêtre (`fixed`) et non à la page,
+     il ne bouge pas d'un pixel pendant qu'il est ouvert ; la hauteur de la
+     barre est exactement `--band-height`. S'il déborde — petit écran, gros
+     doigts — c'est lui qui défile, et le geste ne se propage pas derrière. */
   .header__nav {
     display: none;
-    position: absolute;
-    top: 100%;
+    position: fixed;
+    top: var(--band-height);
     left: 0;
     right: 0;
+    bottom: 0;
     flex-direction: column;
     align-items: stretch;
     gap: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: var(--bg);
     box-shadow: 0 10px 22px var(--shadow-dark);
-    padding: 0.5rem 1.5rem 1.25rem;
+    padding: 0.5rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom));
+  }
+
+  /* Le panneau commence sous la barre, mais il est positionné quand le reste
+     de la barre ne l'est pas : au moindre écart il passerait devant. On pose
+     donc le contenu de la barre au-dessus — le burger doit rester saisissable,
+     c'est le seul chemin hors du menu une fois l'écran couvert. */
+  .header__brand,
+  .header__actions {
+    position: relative;
+    z-index: 1;
   }
 
   .header__nav--open {
@@ -418,12 +448,16 @@ watch(() => [route.path, route.hash], closeAll)
     box-shadow: none;
   }
 
-  /* En mobile, les réseaux vivent dans le menu déroulant, centrés sous les liens */
+  /* En mobile, les réseaux vivent dans le menu, centrés. `margin-top: auto`
+     les cale en bas du panneau : les liens tiennent le haut de l'écran, les
+     pastilles le bas, et le vide se répartit entre les deux au lieu de
+     s'accumuler sous elles. */
   .header__nav-socials {
     display: flex;
     justify-content: center;
     gap: 0.9rem;
-    padding-top: 0.9rem;
+    margin-top: auto;
+    padding-top: 1.4rem;
   }
 
   /* Le thème a sa pastille dans la barre : pas de doublon dans le menu. */
