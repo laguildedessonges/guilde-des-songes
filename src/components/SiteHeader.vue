@@ -214,21 +214,29 @@ watch(() => [route.path, route.hash], closeAll)
   min-height: var(--band-height);
 }
 
+/* Tout se règle sur la largeur de la fenêtre plutôt que sur des paliers : le
+   logo et le titre se réduisent à mesure qu'elle se resserre, et le titre passe
+   sur deux lignes s'il le faut encore. Sur grand écran, les bornes hautes des
+   `clamp` redonnent exactement les tailles d'avant. */
 .header__brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
+  min-width: 0;
+  gap: clamp(0.4rem, 2vw, 0.7rem);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 3.2vw, 1.1rem);
+  line-height: 1.15;
   color: var(--text);
   text-decoration: none;
-  white-space: nowrap;
 }
 
 .header__logo {
-  height: 3.75rem;
+  height: clamp(2.4rem, 10vw, 3.75rem);
+  /* Il ne dépasse jamais de la bande, si basse soit-elle. */
+  max-height: calc(var(--band-height) - 0.75rem);
   width: auto;
+  flex: none;
 }
 
 /* Le tracé du logo est rouge sombre : on l'éclaircit sur fond sombre. */
@@ -325,14 +333,15 @@ watch(() => [route.path, route.hash], closeAll)
 
 /* Une ligne à part, au-dessus des liens, séparée d'eux par un filet léger. */
 .header__nav-recherche {
-  margin-bottom: 0.35rem;
-  padding-bottom: 0.6rem;
+  margin-bottom: clamp(0.15rem, 0.6vh, 0.35rem);
+  padding-bottom: clamp(0.25rem, 1vh, 0.6rem);
   border-bottom: 1px solid var(--shadow-dark);
 }
 
 .header__actions {
   display: flex;
   align-items: center;
+  flex: none;
   gap: 0.6rem;
 }
 
@@ -414,7 +423,7 @@ watch(() => [route.path, route.hash], closeAll)
   }
 
   .header__link {
-    padding: 0.7rem 0;
+    padding: clamp(0.25rem, 1.15vh, 0.7rem) 0;
   }
 
   /* En mobile, les sections de l'accueil sont déjà dépliées : pas de survol possible */
@@ -434,13 +443,14 @@ watch(() => [route.path, route.hash], closeAll)
     opacity: 1;
     visibility: visible;
     min-width: 0;
-    padding: 0 0 0.5rem 0.9rem;
+    gap: 0;
+    padding: 0 0 clamp(0.2rem, 0.8vh, 0.5rem) 0.9rem;
     background: none;
     box-shadow: none;
   }
 
   .header__dropdown-link {
-    padding: 0.5rem 0;
+    padding: clamp(0.18rem, 0.85vh, 0.5rem) 0;
     font-weight: 400;
   }
 
@@ -448,16 +458,14 @@ watch(() => [route.path, route.hash], closeAll)
     box-shadow: none;
   }
 
-  /* En mobile, les réseaux vivent dans le menu, centrés. `margin-top: auto`
-     les cale en bas du panneau : les liens tiennent le haut de l'écran, les
-     pastilles le bas, et le vide se répartit entre les deux au lieu de
-     s'accumuler sous elles. */
+  /* Les réseaux suivent « Ressources » de près, sans être renvoyés en bas de
+     l'écran : ce sont des liens qu'on vient chercher comme les autres, et les
+     atteindre ne doit pas demander un geste de plus. */
   .header__nav-socials {
     display: flex;
     justify-content: center;
     gap: 0.9rem;
-    margin-top: auto;
-    padding-top: 1.4rem;
+    padding-top: clamp(0.5rem, 2vh, 1.4rem);
   }
 
   /* Le thème a sa pastille dans la barre : pas de doublon dans le menu. */
@@ -483,6 +491,78 @@ watch(() => [route.path, route.hash], closeAll)
     height: 2.375rem;
     padding: 0;
     border-radius: 50%;
+  }
+}
+/* Écran court — petit téléphone, ou téléphone couché : en une colonne, le menu
+   ne tient plus dans la hauteur, et resserrer encore les interlignes rendrait
+   les liens difficiles à viser. Il passe donc en deux colonnes — l'accueil et
+   ses sections à gauche, les autres pages à droite, les réseaux en dessous —
+   et tout reste atteignable sans un geste de défilement. */
+@media (max-width: 1040px) and (max-height: 720px) {
+  .header__nav--open {
+    display: grid;
+    /* La colonne de gauche porte « Accueil » et ses sections, décalées d'un
+       retrait : à colonnes égales, « Qui sommes-nous » n'y tenait pas. */
+    grid-template-columns: 1.35fr 1fr;
+    align-content: start;
+    column-gap: 1.2rem;
+    /* Deux colonnes valent deux fois moins de largeur par intitulé : le menu
+       se lit un cran plus petit, faute de quoi « Qui sommes-nous » passe à la
+       ligne au plus étroit. Relatif (`em`), donc proportionnel à ce que le
+       lecteur a réglé dans son navigateur. */
+    font-size: 0.92em;
+  }
+
+  /* La recherche et les réseaux tiennent toute la largeur : l'une ouvre le
+     menu, les autres le referment. */
+  .header__nav-recherche,
+  .header__nav-socials {
+    grid-column: 1 / -1;
+  }
+
+  /* « Accueil » et ses cinq sections occupent la colonne de gauche ; les
+     quatre pages se rangent d'elles-mêmes en face. */
+  .header__group {
+    grid-row: span 4;
+  }
+
+  /* Deux colonnes étroites : un intitulé trop long passe à la ligne plutôt que
+     de déborder sur sa voisine. */
+  .header__link,
+  .header__dropdown-link {
+    white-space: normal;
+  }
+
+  .header__dropdown {
+    padding-left: 0.7rem;
+  }
+}
+/* Téléphone couché : large et bas de plafond. Les sections de l'accueil se
+   rangent à leur tour sur deux colonnes dans leur moitié — la place manque en
+   hauteur, pas en largeur. */
+@media (max-width: 1040px) and (max-height: 560px) and (min-width: 560px) {
+  /* La moitié gauche en porte deux : on lui donne la part qui va avec. À
+     colonnes égales, « Qui sommes-nous » passait à la ligne et reprenait en
+     hauteur ce que la mise en colonnes venait d'économiser. */
+  .header__nav--open {
+    grid-template-columns: 1.6fr 1fr;
+  }
+
+  .header__dropdown {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1rem;
+  }
+
+  .header__nav-recherche :deep(.recherche__boite) {
+    min-height: 2.25rem;
+  }
+
+  .header__nav-socials {
+    padding-top: 0.3rem;
+  }
+
+  .header__nav--open {
+    padding-bottom: calc(0.35rem + env(safe-area-inset-bottom));
   }
 }
 </style>
