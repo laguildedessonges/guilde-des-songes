@@ -58,6 +58,16 @@
   --band-gap: clamp(1.5rem, 4vw, 3.25rem);
 }
 
+/* Écran bas de plafond — un téléphone couché — où la bande de l'entête prendrait
+   près du tiers de la hauteur. Elle se resserre, et tout ce qui se règle sur
+   elle suit sans rien à retoucher : le menu qui s'y accroche, les ancres des
+   sections, le panneau de la recherche. */
+@media (max-height: 560px) {
+  :root {
+    --band-height: 4rem;
+  }
+}
+
 /* Mode sombre : mêmes tokens, teintes inversées. Le relief néomorphique tient
    sur un fond prune sombre, avec une lumière plus discrète et des rouges
    éclaircis pour rester lisibles. Appliqué via data-theme sur <html> (posé
