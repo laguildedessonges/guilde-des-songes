@@ -50,6 +50,22 @@ function surLargeur() {
   closeAll()
 }
 
+// Tourner le téléphone ne franchit aucun seuil de largeur : `surLargeur` n'y
+// voit rien, et le menu resterait déplié aux mesures de l'orientation qu'on
+// vient de quitter — colonne dessinée pour une autre hauteur, et surtout page
+// figée en `position: fixed` derrière lui, ce qu'iOS traduit par une mise en
+// page bloquée dans l'ancienne orientation. On referme donc le menu : la page
+// est rendue au navigateur, qui la remesure pour l'écran tel qu'il est
+// maintenant.
+//
+// Cet écouteur-là, et pas `resize` : au téléphone, le clavier qui s'ouvre sous
+// le champ de recherche redimensionne la fenêtre lui aussi, et refermerait le
+// menu en pleine saisie.
+function surRotation() {
+  closeAll()
+  surLargeur()
+}
+
 function closeAll() {
   menuOpen.value = false
   homeOpen.value = false
@@ -67,11 +83,15 @@ onMounted(() => {
   document.addEventListener('click', onDocumentClick)
   largeurMenu.addEventListener('change', surLargeur)
   window.addEventListener('resize', surLargeur)
+  window.addEventListener('orientationchange', surRotation)
+  screen.orientation?.addEventListener?.('change', surRotation)
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick)
   largeurMenu.removeEventListener('change', surLargeur)
   window.removeEventListener('resize', surLargeur)
+  window.removeEventListener('orientationchange', surRotation)
+  screen.orientation?.removeEventListener?.('change', surRotation)
 })
 
 // Déplié, le menu occupe l'écran : la page derrière ne doit pas répondre au
