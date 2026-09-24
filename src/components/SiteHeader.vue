@@ -95,27 +95,6 @@ watch(() => [route.path, route.hash], closeAll)
       </RouterLink>
 
       <nav class="header__nav" :class="{ 'header__nav--open': menuOpen }" aria-label="Navigation principale">
-        <!-- Les réseaux ouvrent le menu : ce sont les liens qu'on vient
-             chercher le plus souvent, et placés là ils s'atteignent du premier
-             coup d'œil, quelle que soit la hauteur de l'écran. -->
-        <div class="header__nav-socials">
-          <component
-            :is="social.mail ? 'button' : 'a'"
-            v-for="social in socials"
-            :key="social.icon"
-            class="social-btn"
-            :href="social.mail ? undefined : social.href"
-            :aria-label="social.label"
-            :title="social.label"
-            :target="social.href?.startsWith('http') ? '_blank' : undefined"
-            :rel="social.href?.startsWith('http') ? 'noopener' : undefined"
-            @click="social.mail ? openContact() : null; closeAll()"
-          >
-            <IconGlyph :name="social.icon" />
-          </component>
-          <ThemeToggle class="header__nav-theme" />
-        </div>
-
         <!-- En mobile, la recherche ouvre le menu : le champ tient la colonne,
              et ses résultats se posent par-dessus les liens. La clé la remonte
              à chaque ouverture du menu, pour un champ toujours vierge. -->
@@ -160,6 +139,26 @@ watch(() => [route.path, route.hash], closeAll)
           {{ page.label }}
         </RouterLink>
 
+        <!-- Les réseaux ferment la liste, sous « Ressources », et se calent au
+             bas du panneau — donc au-dessus de la barre du navigateur, qui
+             mange le bas de l'écran au téléphone. -->
+        <div class="header__nav-socials">
+          <component
+            :is="social.mail ? 'button' : 'a'"
+            v-for="social in socials"
+            :key="social.icon"
+            class="social-btn"
+            :href="social.mail ? undefined : social.href"
+            :aria-label="social.label"
+            :title="social.label"
+            :target="social.href?.startsWith('http') ? '_blank' : undefined"
+            :rel="social.href?.startsWith('http') ? 'noopener' : undefined"
+            @click="social.mail ? openContact() : null; closeAll()"
+          >
+            <IconGlyph :name="social.icon" />
+          </component>
+          <ThemeToggle class="header__nav-theme" />
+        </div>
       </nav>
 
       <div class="header__actions" :class="{ 'header__actions--recherche': rechercheOuverte }">
@@ -402,6 +401,10 @@ watch(() => [route.path, route.hash], closeAll)
     left: 0;
     right: 0;
     bottom: 0;
+    /* Les barres du navigateur mangent le bas de l'écran au téléphone. `dvh`
+       suit cette zone réellement visible : sans lui, la dernière ligne du
+       menu — les réseaux — passe dessous. */
+    max-height: calc(100dvh - var(--band-height));
     flex-direction: column;
     align-items: stretch;
     gap: 0;
@@ -462,13 +465,17 @@ watch(() => [route.path, route.hash], closeAll)
     box-shadow: none;
   }
 
-  /* Première ligne du menu, avant même la recherche : quelle que soit la
-     hauteur de l'écran, ces quatre liens s'atteignent sans un geste de plus. */
+  /* Dernière ligne du menu, sous « Ressources ». `margin-top: auto` la pose au
+     bas du panneau : les liens tiennent le haut de l'écran, les pastilles le
+     bas, et le vide se répartit entre les deux au lieu de s'accumuler sous
+     elles. Sur un écran trop court pour tout montrer, `auto` ne pousse rien —
+     elles suivent simplement « Ressources ». */
   .header__nav-socials {
     display: flex;
     justify-content: center;
     gap: 0.9rem;
-    padding-bottom: clamp(0.35rem, 1.4vh, 0.9rem);
+    margin-top: auto;
+    padding-top: clamp(0.6rem, 2vh, 1.4rem);
   }
 
   /* Le thème a sa pastille dans la barre : pas de doublon dans le menu. */
