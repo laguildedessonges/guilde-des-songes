@@ -95,6 +95,27 @@ watch(() => [route.path, route.hash], closeAll)
       </RouterLink>
 
       <nav class="header__nav" :class="{ 'header__nav--open': menuOpen }" aria-label="Navigation principale">
+        <!-- Les réseaux ouvrent le menu : ce sont les liens qu'on vient
+             chercher le plus souvent, et placés là ils s'atteignent du premier
+             coup d'œil, quelle que soit la hauteur de l'écran. -->
+        <div class="header__nav-socials">
+          <component
+            :is="social.mail ? 'button' : 'a'"
+            v-for="social in socials"
+            :key="social.icon"
+            class="social-btn"
+            :href="social.mail ? undefined : social.href"
+            :aria-label="social.label"
+            :title="social.label"
+            :target="social.href?.startsWith('http') ? '_blank' : undefined"
+            :rel="social.href?.startsWith('http') ? 'noopener' : undefined"
+            @click="social.mail ? openContact() : null; closeAll()"
+          >
+            <IconGlyph :name="social.icon" />
+          </component>
+          <ThemeToggle class="header__nav-theme" />
+        </div>
+
         <!-- En mobile, la recherche ouvre le menu : le champ tient la colonne,
              et ses résultats se posent par-dessus les liens. La clé la remonte
              à chaque ouverture du menu, pour un champ toujours vierge. -->
@@ -139,23 +160,6 @@ watch(() => [route.path, route.hash], closeAll)
           {{ page.label }}
         </RouterLink>
 
-        <div class="header__nav-socials">
-          <component
-            :is="social.mail ? 'button' : 'a'"
-            v-for="social in socials"
-            :key="social.icon"
-            class="social-btn"
-            :href="social.mail ? undefined : social.href"
-            :aria-label="social.label"
-            :title="social.label"
-            :target="social.href?.startsWith('http') ? '_blank' : undefined"
-            :rel="social.href?.startsWith('http') ? 'noopener' : undefined"
-            @click="social.mail ? openContact() : null; closeAll()"
-          >
-            <IconGlyph :name="social.icon" />
-          </component>
-          <ThemeToggle class="header__nav-theme" />
-        </div>
       </nav>
 
       <div class="header__actions" :class="{ 'header__actions--recherche': rechercheOuverte }">
@@ -458,14 +462,13 @@ watch(() => [route.path, route.hash], closeAll)
     box-shadow: none;
   }
 
-  /* Les réseaux suivent « Ressources » de près, sans être renvoyés en bas de
-     l'écran : ce sont des liens qu'on vient chercher comme les autres, et les
-     atteindre ne doit pas demander un geste de plus. */
+  /* Première ligne du menu, avant même la recherche : quelle que soit la
+     hauteur de l'écran, ces quatre liens s'atteignent sans un geste de plus. */
   .header__nav-socials {
     display: flex;
     justify-content: center;
     gap: 0.9rem;
-    padding-top: clamp(0.5rem, 2vh, 1.4rem);
+    padding-bottom: clamp(0.35rem, 1.4vh, 0.9rem);
   }
 
   /* Le thème a sa pastille dans la barre : pas de doublon dans le menu. */
@@ -491,78 +494,6 @@ watch(() => [route.path, route.hash], closeAll)
     height: 2.375rem;
     padding: 0;
     border-radius: 50%;
-  }
-}
-/* Écran court — petit téléphone, ou téléphone couché : en une colonne, le menu
-   ne tient plus dans la hauteur, et resserrer encore les interlignes rendrait
-   les liens difficiles à viser. Il passe donc en deux colonnes — l'accueil et
-   ses sections à gauche, les autres pages à droite, les réseaux en dessous —
-   et tout reste atteignable sans un geste de défilement. */
-@media (max-width: 1040px) and (max-height: 720px) {
-  .header__nav--open {
-    display: grid;
-    /* La colonne de gauche porte « Accueil » et ses sections, décalées d'un
-       retrait : à colonnes égales, « Qui sommes-nous » n'y tenait pas. */
-    grid-template-columns: 1.35fr 1fr;
-    align-content: start;
-    column-gap: 1.2rem;
-    /* Deux colonnes valent deux fois moins de largeur par intitulé : le menu
-       se lit un cran plus petit, faute de quoi « Qui sommes-nous » passe à la
-       ligne au plus étroit. Relatif (`em`), donc proportionnel à ce que le
-       lecteur a réglé dans son navigateur. */
-    font-size: 0.92em;
-  }
-
-  /* La recherche et les réseaux tiennent toute la largeur : l'une ouvre le
-     menu, les autres le referment. */
-  .header__nav-recherche,
-  .header__nav-socials {
-    grid-column: 1 / -1;
-  }
-
-  /* « Accueil » et ses cinq sections occupent la colonne de gauche ; les
-     quatre pages se rangent d'elles-mêmes en face. */
-  .header__group {
-    grid-row: span 4;
-  }
-
-  /* Deux colonnes étroites : un intitulé trop long passe à la ligne plutôt que
-     de déborder sur sa voisine. */
-  .header__link,
-  .header__dropdown-link {
-    white-space: normal;
-  }
-
-  .header__dropdown {
-    padding-left: 0.7rem;
-  }
-}
-/* Téléphone couché : large et bas de plafond. Les sections de l'accueil se
-   rangent à leur tour sur deux colonnes dans leur moitié — la place manque en
-   hauteur, pas en largeur. */
-@media (max-width: 1040px) and (max-height: 560px) and (min-width: 560px) {
-  /* La moitié gauche en porte deux : on lui donne la part qui va avec. À
-     colonnes égales, « Qui sommes-nous » passait à la ligne et reprenait en
-     hauteur ce que la mise en colonnes venait d'économiser. */
-  .header__nav--open {
-    grid-template-columns: 1.6fr 1fr;
-  }
-
-  .header__dropdown {
-    grid-template-columns: 1fr 1fr;
-    column-gap: 1rem;
-  }
-
-  .header__nav-recherche :deep(.recherche__boite) {
-    min-height: 2.25rem;
-  }
-
-  .header__nav-socials {
-    padding-top: 0.3rem;
-  }
-
-  .header__nav--open {
-    padding-bottom: calc(0.35rem + env(safe-area-inset-bottom));
   }
 }
 </style>
