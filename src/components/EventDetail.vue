@@ -16,6 +16,7 @@ import {
   joindre,
   kindLabel,
   libelleJeu,
+  morceauxDuTexte,
   placesLabel,
   sansPrefixeMJ,
 } from '../data/evenement-affichage.js'
@@ -43,12 +44,18 @@ defineProps({
     <span class="detail__etiquette">MJ</span>{{ typo(sansPrefixeMJ(event.gm)) }}
   </p>
 
+  <!-- La description garde la mise en page saisie dans la feuille : le gras
+       posé sur les mots qui comptent, les retours à la ligne là où ils ont été
+       voulus. -->
   <p
     v-if="event.text"
     class="detail__text"
     :class="{ 'detail__text--court': compact }"
   >
-    {{ typo(event.text) }}
+    <template v-for="(morceau, i) in morceauxDuTexte(event.text)" :key="i"
+      ><strong v-if="morceau.gras">{{ morceau.texte }}</strong
+      ><template v-else>{{ morceau.texte }}</template></template
+    >
   </p>
 
   <!-- Zone d'action : dans la fenêtre, elle se centre dans l'espace resté
@@ -241,11 +248,21 @@ defineProps({
   margin-top: 0.8rem;
 }
 
-/* Corps du texte justifié, comme le reste du site. */
+/* Corps du texte justifié, comme le reste du site. `pre-line` rend les retours
+   à la ligne de la feuille sans qu'on ait à semer des `<br>` : les espaces, eux,
+   se regroupent toujours, une cellule alignée à la main ne creuse donc pas de
+   trous dans la page. */
 .detail__text {
   color: var(--text-muted);
   margin-bottom: 1rem;
   text-align: justify;
+  white-space: pre-line;
+}
+
+/* Le gras de la feuille : la même couleur que les titres, pour qu'il ressorte
+   du gris du corps de texte plutôt que de s'y épaissir seulement. */
+.detail__text strong {
+  color: var(--text);
 }
 
 .detail__seats--complet {

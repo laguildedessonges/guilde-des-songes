@@ -185,7 +185,7 @@ function depuisLAgenda(evenement) {
     evenement.game,
     evenement.gm,
     evenement.place,
-    evenement.text,
+    sansMiseEnForme(evenement.text),
     formatDate(evenement.date),
   ]
     .filter(Boolean)
