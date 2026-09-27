@@ -4,8 +4,13 @@
 // par une espace insécable, que le navigateur refuse de couper.
 const INSECABLE = ' '
 
+// Espaces horizontales seulement, jamais un retour à la ligne : une description
+// de la feuille peut en porter, et les changer en espace insécable souderait
+// deux lignes que l'on voulait séparées.
+const ESPACE = '[^\\S\\r\\n]+'
+
 export function typo(texte) {
   return String(texte === null || texte === undefined ? '' : texte)
-    .replace(/\s+([:;!?»])/g, INSECABLE + '$1')
-    .replace(/(«)\s+/g, '$1' + INSECABLE)
+    .replace(new RegExp(ESPACE + '([:;!?»])', 'g'), INSECABLE + '$1')
+    .replace(new RegExp('(«)' + ESPACE, 'g'), '$1' + INSECABLE)
 }

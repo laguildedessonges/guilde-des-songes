@@ -20,6 +20,7 @@ import {
   kindOf,
   libelleJeu,
   sansPrefixeMJ,
+  texteAPlat,
 } from '../data/evenement-affichage.js'
 import { typo } from '../typographie.js'
 
@@ -302,7 +303,9 @@ function formatShortDate(iso) {
               <span v-if="event.gm" class="card__champ">
                 <span class="card__etiquette">MJ</span>{{ typo(sansPrefixeMJ(event.gm)) }}
               </span>
-              <span v-if="event.text" class="card__text">{{ typo(event.text) }}</span>
+              <!-- Amorce bornée à deux lignes : la mise en page de la feuille
+                   y est mise à plat, le détail la rendra telle quelle. -->
+              <span v-if="event.text" class="card__text">{{ texteAPlat(event.text) }}</span>
             </button>
           </li>
         </ul>

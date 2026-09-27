@@ -1358,6 +1358,7 @@ function cleEntete(nom) {
  * l'intitulé exact de la colonne ET par sa clé tolérante.
  */
 const COLONNE_LIEN_DISCORD = 'Lien Discord'
+const ENTETE_DESCRIPTION = 'Description'
 const EST_UNE_URL = /^https?:\/\//i
 
 function lignes(nomOnglet) {
@@ -1379,6 +1380,16 @@ function lignes(nomOnglet) {
   const formules =
     colLien === -1 ? null : feuille.getRange(2, colLien + 1, hauteur, 1).getFormulas()
 
+  // Colonne Description : ce qui est mis en gras dans la cellule fait partie de
+  // la mise en page voulue, et `getValues()` n'en rend que le texte nu. On relit
+  // donc la cellule enrichie. Les retours à la ligne, eux, sont déjà dans la
+  // valeur — il n'y a qu'à ne pas les effacer.
+  const colDescription = entetes.indexOf(ENTETE_DESCRIPTION)
+  const descriptions =
+    colDescription === -1
+      ? null
+      : feuille.getRange(2, colDescription + 1, hauteur, 1).getRichTextValues()
+
   return valeurs.slice(1).map((ligne, i) => {
     const objet = {}
     entetes.forEach((entete, j) => {
@@ -1394,6 +1405,14 @@ function lignes(nomOnglet) {
       }
     }
 
+    if (colDescription !== -1) {
+      const miseEnForme = descriptionMiseEnForme(descriptions[i][0])
+      if (miseEnForme !== null) {
+        objet[entetes[colDescription]] = miseEnForme
+        objet[cleEntete(entetes[colDescription])] = miseEnForme
+      }
+    }
+
     return objet
   })
 }
@@ -1405,6 +1424,46 @@ function urlDeLaCellule(riche, formule) {
 
   const dansLaFormule = String(formule || '').match(/https?:\/\/[^"'\s)]+/i)
   return dansLaFormule ? dansLaFormule[0] : ''
+}
+
+/**
+ * Description d'une partie, avec le gras de la cellule.
+ *
+ * Il part marqué par `**…**` — la convention du site, qui la relit pour poser
+ * ses `<strong>`. Un texte, et non du HTML : rien de ce qui est saisi dans la
+ * feuille ne doit pouvoir écrire de balise dans la page.
+ *
+ * Renvoie `null` quand la cellule ne porte aucun gras, pour laisser la valeur
+ * ordinaire faire son travail.
+ */
+function descriptionMiseEnForme(riche) {
+  if (!riche) return null
+
+  const morceaux = riche.getRuns()
+  if (!morceaux || !morceaux.length) return null
+
+  let marque = false
+  let sortie = ''
+
+  for (let i = 0; i < morceaux.length; i++) {
+    const contenu = morceaux[i].getText()
+    if (!contenu) continue
+
+    const style = morceaux[i].getTextStyle()
+    if (style && style.isBold() && contenu.trim()) {
+      // Les espaces de bordure restent hors des marques : « **gras ** » se
+      // refermerait du mauvais côté à la relecture.
+      const avant = contenu.match(/^\s*/)[0]
+      const apres = contenu.match(/\s*$/)[0]
+      sortie +=
+        avant + '**' + contenu.slice(avant.length, contenu.length - apres.length) + '**' + apres
+      marque = true
+    } else {
+      sortie += contenu
+    }
+  }
+
+  return marque ? sortie : null
 }
 
 /**
