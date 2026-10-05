@@ -1,4 +1,4 @@
-# Toutes les quinze minutes, relève les « Intéressé·e » des événements Discord
+# Toutes les cinq minutes, relève les « Intéressé·e » des événements Discord
 # de la Guilde et publie le résultat dans `interesses.json`, sur la branche
 # `donnees`. La feuille Google qui pilote l'agenda lit ce fichier : elle ne peut
 # pas interroger Discord elle-même (Discord bloque les appels de bot venus des
@@ -13,8 +13,8 @@ name: Relever les intéressés Discord
 on:
   schedule:
     # GitHub lance les tâches planifiées avec un peu de retard aux heures
-    # chargées : la relève arrive en pratique toutes les 15 à 25 minutes.
-    - cron: '*/15 * * * *'
+    # chargées : la relève arrive en pratique toutes les 5 à 15 minutes.
+    - cron: '*/5 * * * *'
   # Et à la demande, depuis l'onglet Actions — utile pour vérifier la mise en place.
   workflow_dispatch:
 

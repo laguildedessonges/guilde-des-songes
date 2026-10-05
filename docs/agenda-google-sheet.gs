@@ -804,7 +804,7 @@ function estTerminee(ligne, date, aujourdhui) {
  * La feuille ne parle pas à Discord elle-même : Discord bloque à l'entrée
  * (code 40333) tout appel de bot venu des serveurs de Google, d'où s'exécute
  * Apps Script. C'est donc le dépôt du site qui interroge Discord, chez GitHub,
- * toutes les quinze minutes (workflow « Relever les intéressés Discord »), et
+ * toutes les cinq minutes (workflow « Relever les intéressés Discord »), et
  * publie le résultat dans un fichier que cette fonction lit.
  *
  * Mise en place, une fois, côté GitHub — rien à régler ici :
@@ -1064,7 +1064,7 @@ function verifierDiscord() {
     return afficher(messages)
   }
 
-  // 2. Sa fraîcheur : la tâche passe toutes les 15 minutes, avec parfois du retard.
+  // 2. Sa fraîcheur : la tâche passe toutes les 5 minutes, avec souvent du retard.
   const age = Math.round((Date.now() - new Date(releve.releveLe).getTime()) / 60000)
   const nbEvenements = Object.keys(releve.evenements).length
   if (isNaN(age) || age > 90) {
@@ -1144,7 +1144,7 @@ function verifierDiscord() {
   messages.push(
     manquantes
       ? '\nLa relève ignore les lignes en ✗ et continue pour les autres.'
-      : '\nTout est en place. La relève tourne toutes les 15 minutes.',
+      : '\nTout est en place. La relève tourne toutes les 5 minutes.',
   )
   messages.push('Pour relever tout de suite : Guilde › Relever les inscrits Discord.')
   return afficher(messages)
@@ -1167,7 +1167,7 @@ function installerSynchroDiscord() {
   ScriptApp.getProjectTriggers().forEach(function (declencheur) {
     if (declencheur.getHandlerFunction() === 'synchroniserDiscord') ScriptApp.deleteTrigger(declencheur)
   })
-  ScriptApp.newTrigger('synchroniserDiscord').timeBased().everyMinutes(15).create()
+  ScriptApp.newTrigger('synchroniserDiscord').timeBased().everyMinutes(5).create()
 }
 
 /** Programme l'archivage chaque nuit, sans doublonner le déclencheur. */

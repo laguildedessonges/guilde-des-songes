@@ -4,7 +4,7 @@
 // interroger Discord elle-même. Discord bloque à l'entrée (code 40333) tout
 // appel de bot venu des serveurs de Google, d'où s'exécute Apps Script. Ce
 // script tourne donc chez GitHub (workflow « Relever les intéressés Discord »),
-// toutes les quinze minutes, et publie le résultat dans un fichier JSON sur la
+// toutes les cinq minutes, et publie le résultat dans un fichier JSON sur la
 // branche `donnees`. La feuille n'a plus qu'à lire ce fichier.
 //
 // Entrées (variables d'environnement) :
