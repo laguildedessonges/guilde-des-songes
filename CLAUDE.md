@@ -48,7 +48,7 @@ réseaux) vient de l'ancien site.
   gazette renvoie à une date.
 - **Intéressés Discord** : la feuille ne peut pas interroger Discord (bloqué depuis
   les serveurs de Google, code 40333). Le workflow `.github/workflows/releve-discord.yml`
-  lance `scripts/releve-discord.mjs` toutes les 15 min et publie `interesses.json` sur
+  lance `scripts/releve-discord.mjs` toutes les 5 min et publie `interesses.json` sur
   la branche `donnees`, que la feuille lit. Le jeton du bot est le secret GitHub
   `DISCORD_TOKEN`, l'identifiant du serveur est dans le workflow.
 - **Gazette** : un fichier Markdown par numéro dans `src/gazette/` (front-matter
