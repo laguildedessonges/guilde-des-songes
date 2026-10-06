@@ -558,8 +558,16 @@ function reglerMensuelles(feuille) {
  * Tourne chaque nuit, et à la demande par le menu « Guilde ».
  */
 function archiver() {
-  // Appelée par le rangement : pas de compte rendu à l'écran, comme depuis le déclencheur.
-  synchroniserDiscord({ source: 'rangement' })
+  // Le rangement vide puis réécrit les registres : aucune relève ne doit
+  // tomber au milieu (voir sousVerrou). Il attend qu'une relève en cours
+  // finisse ; s'il n'y parvient pas, il échoue, et Google prévient par courriel.
+  const fait = sousVerrou(120, ranger)
+  if (!fait) throw new Error('Rangement abandonné : une relève Discord occupait encore les registres.')
+}
+
+function ranger() {
+  // Pas de compte rendu à l'écran, comme depuis le déclencheur.
+  releverDiscord(false)
 
   const classeur = SpreadsheetApp.getActiveSpreadsheet()
   const evenements = classeur.getSheetByName(ONGLET_EVENEMENTS)
@@ -825,6 +833,46 @@ function synchroniserDiscord(declencheur) {
   // Lancée par le déclencheur horaire, la fonction reçoit un objet ; depuis le
   // menu, rien. Le compte rendu ne s'affiche que depuis le menu.
   const depuisMenu = !declencheur
+
+  // Le déclencheur n'attend pas : si une relève ou un rangement tourne déjà,
+  // il laisse la main, la suivante passe cinq minutes plus tard.
+  const faite = sousVerrou(depuisMenu ? 60 : 5, function () {
+    releverDiscord(depuisMenu)
+  })
+  if (!faite && depuisMenu) {
+    afficher(
+      ['✗ Une relève ou un rangement est déjà en cours : réessayer dans une minute.'],
+      'Relève des inscrits Discord',
+    )
+  }
+}
+
+/**
+ * Un seul script à la fois sur les registres d'inscriptions.
+ *
+ * Deux relèves qui se chevauchent lisent le même registre avant que l'une ou
+ * l'autre ait écrit : chacune y trouve les mêmes absents, et les ajoute — la
+ * personne est alors comptée deux fois. Même chose quand la relève tombe
+ * pendant le rangement de la nuit, qui vide le registre avant de le réécrire :
+ * elle le croit vide et réinscrit tout le monde. Les occasions ne manquent pas :
+ * déclencheur toutes les cinq minutes, menu, rangement, et un déclencheur par
+ * personne qui a lancé `initialiser` (chacune ne voit et ne remplace que le
+ * sien). Le verrou les fait passer l'une après l'autre.
+ *
+ * Renvoie `false`, sans rien faire, si le verrou ne s'est pas libéré à temps.
+ */
+function sousVerrou(secondes, action) {
+  const verrou = LockService.getScriptLock()
+  if (!verrou.tryLock(secondes * 1000)) return false
+  try {
+    action()
+  } finally {
+    verrou.releaseLock()
+  }
+  return true
+}
+
+function releverDiscord(depuisMenu) {
   const messages = []
 
   const releve = releveDiscord()
@@ -963,9 +1011,11 @@ function ouvrirRegistre(nom) {
  * Compare les intéressés Discord d'une ligne d'agenda au registre déjà lu :
  * les pseudos apparus deviennent des lignes à ajouter, les lignes « Discord »
  * de ceux qui se sont rétractés des numéros de ligne à retirer. Une
- * inscription venue du site n'est jamais touchée, et un pseudo déjà présent
+ * inscription saisie à la main n'est jamais touchée, et un pseudo déjà présent
  * n'est pas ajouté deux fois — c'est ce qui évite le double comptage quand
- * quelqu'un s'inscrit des deux côtés. Rien n'est écrit ici.
+ * quelqu'un s'inscrit des deux côtés. Une ligne « Discord » en double (laissée
+ * par deux relèves simultanées, avant le verrou) est retirée : la première
+ * reste. Rien n'est écrit ici.
  */
 function comparerInteresses(registre, date, titre, pseudos) {
   const i = registre.indices
@@ -978,18 +1028,29 @@ function comparerInteresses(registre, date, titre, pseudos) {
     return !intitule || intitule.toLowerCase() === titre.toLowerCase()
   }
 
-  const presents = []
-  const retirer = []
-
+  const soiree = []
   registre.valeurs.slice(1).forEach(function (ligne, index) {
     if (!memeSoiree(ligne)) return
-    const pseudo = texte(ligne[i.pseudo]).toLowerCase()
-    const venuDeDiscord = texte(ligne[i.origine]) === ORIGINE_DISCORD
-    if (venuDeDiscord && voulus.indexOf(pseudo) === -1) {
-      retirer.push(index + 2)
+    soiree.push({
+      pseudo: texte(ligne[i.pseudo]).toLowerCase(),
+      venuDeDiscord: texte(ligne[i.origine]) === ORIGINE_DISCORD,
+      numero: index + 2,
+    })
+  })
+
+  // Les inscriptions saisies à la main d'abord : elles priment sur une ligne
+  // Discord au même pseudo, où qu'elle se trouve dans le registre.
+  const presents = soiree.filter((l) => !l.venuDeDiscord).map((l) => l.pseudo)
+  const retirer = []
+
+  soiree.forEach(function (l) {
+    if (!l.venuDeDiscord) return
+    // Rétracté·e sur Discord, ou déjà compté·e : la ligne s'en va.
+    if (voulus.indexOf(l.pseudo) === -1 || presents.indexOf(l.pseudo) !== -1) {
+      retirer.push(l.numero)
       return
     }
-    presents.push(pseudo)
+    presents.push(l.pseudo)
   })
 
   const maintenant = new Date()
@@ -1306,7 +1367,7 @@ function normaliserType(valeur) {
  */
 function normaliserHoraire(valeur) {
   if (valeur instanceof Date) {
-        return Utilities.formatDate(valeur, fuseau, 'HH') + 'h' + Utilities.formatDate(valeur, fuseau, 'mm')
+    return Utilities.formatDate(valeur, fuseau(), 'HH') + 'h' + Utilities.formatDate(valeur, fuseau(), 'mm')
   }
 
   const texte = String(valeur).trim()
