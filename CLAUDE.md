@@ -10,6 +10,9 @@ réseaux) vient de l'ancien site.
   (`/agenda`, pas `#/agenda`). Le site reste 100 % statique ; c'est le repli vers
   `index.html` qui rend les liens profonds rechargeables — `public/.htaccess` (Apache,
   OVH) et le `404.html` copié dans `dist/` au build (GitHub Pages).
+  Chaque page du plan du site reçoit en plus sa propre copie (`agenda.html`…, avec
+  son `canonical`) : servie par le `404.html`, elle répondrait « introuvable » à
+  Google, qui ne l'indexerait pas.
 - `src/pages/` = une page par route (Home, Partners, Agenda, Gazette, GazetteIssue) ;
   `src/components/` = sections de l'accueil et briques partagées.
 - Design tokens CSS dans `src/style.css` (`--bg`, `--accent`, `--band-height`…) — jamais
