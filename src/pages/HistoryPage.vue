@@ -83,20 +83,16 @@ const lettreEnHtml = enProse(lettre)
 .affiches__liste {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  /* Rangées de hauteur égale : sans cela, la dernière rangée — souvent moins
-     remplie — se dimensionnait sur sa seule carte, et les cartes n'avaient plus
-     toutes la même taille d'une rangée à l'autre. */
-  grid-auto-rows: 1fr;
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
   gap: 1.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* Toutes les cartes d'une même liste ont la même taille : la vignette occupe
-   la hauteur de la rangée, et l'invitation à télécharger se cale en bas quelle
-   que soit la longueur de la légende. Sans cela, les affiches — qui n'ont pas
-   toutes exactement le même format — décalaient chaque carte de sa voisine. */
+/* La carte prend la hauteur de son contenu : l'affiche, sa légende, puis
+   l'invitation à télécharger. */
 .affiche {
   display: flex;
 }
@@ -142,7 +138,6 @@ const lettreEnHtml = enProse(lettre)
 }
 
 .affiche__action {
-  margin-top: auto;
   padding-top: 0.5rem;
   color: var(--accent);
   font-weight: 600;

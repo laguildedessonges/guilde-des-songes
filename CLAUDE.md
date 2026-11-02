@@ -142,8 +142,11 @@ avec des URL propres, les liens et les fichiers doivent connaître leur dossier.
 
 - Tout le contenu est en français ; pas d'i18n.
 - Vérifier la lisibilité à chaque modif : rien ne déborde ni ne se fait rogner, y compris en mobile (~375px).
-- **Les cartes d'une même liste ont toutes la même taille** : hauteur de rangée
-  commune, vignettes au même format (`aspect-ratio` + `object-fit`), et l'action
-  calée en bas quelle que soit la longueur du texte. Des cartes qui se décalent
-  parce que leurs images ou leurs légendes diffèrent donnent une grille bancale.
+- **Les vignettes d'une même liste s'affichent de la même manière, mais leur
+  hauteur suit leur contenu** : même largeur de colonne, images au même format
+  (`aspect-ratio` + `object-fit`), et chaque vignette centrée dans sa rangée
+  (`align-items: center` sur la grille). Jamais de hauteur égalisée
+  (`grid-auto-rows: 1fr`, `height: 100%`, action poussée en bas par
+  `margin-top: auto`) : une vignette courte étirée à la taille de sa voisine
+  paraît vide.
 - Commit/push uniquement quand l'utilisateur le demande ; travailler sur une branche dédiée puis merger sur main.

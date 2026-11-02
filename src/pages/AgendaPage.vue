@@ -428,13 +428,14 @@ function formatShortDate(iso) {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(16.25rem, 100%), 1fr));
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
   gap: 1.25rem;
 }
 
 /* Vignette minimaliste : type, date, titre — le reste au clic. */
 .card {
   width: 100%;
-  height: 100%;
   display: grid;
   gap: 0.3rem;
   padding: 1.1rem 1.25rem;

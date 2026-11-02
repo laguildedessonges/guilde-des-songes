@@ -71,18 +71,17 @@ const memberships = [
   text-align: justify;
 }
 
-/* Deux formules d'adhésion, côte à côte. `grid-auto-rows: 1fr` égalise aussi
-   leur hauteur quand elles s'empilent en mobile. */
+/* Deux formules d'adhésion, côte à côte. */
 .join__channels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(17.5rem, 100%), 1fr));
-  grid-auto-rows: 1fr;
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
   gap: 1.5rem;
 }
 
 .join__channel {
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
   justify-items: center;
   text-align: center;
   gap: 0.25rem;
