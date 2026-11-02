@@ -69,6 +69,8 @@ function avantages(partner) {
 .partners {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(16.25rem, 100%), 1fr));
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
   gap: 1.5rem;
 }
 
@@ -98,8 +100,8 @@ function avantages(partner) {
   }
 }
 
-/* Entête (icône, nom, adresse) calé en haut, description centrée dans l'espace
-   restant : les cartes gardent la même hauteur et se lisent en ligne. */
+/* Entête (icône, nom, adresse) en haut, description dessous, avantages en
+   pied : la carte prend la hauteur de son contenu. */
 .partner {
   display: flex;
   flex-direction: column;

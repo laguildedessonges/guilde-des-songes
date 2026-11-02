@@ -58,6 +58,8 @@ import { typo } from '../typographie.js'
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(18.75rem, 100%), 1fr));
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
   gap: 1.5rem;
 }
 

@@ -63,6 +63,8 @@ const activities = [
 .activities {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(16.25rem, 100%), 1fr));
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
   gap: 1.5rem;
   margin-top: 2rem;
 }

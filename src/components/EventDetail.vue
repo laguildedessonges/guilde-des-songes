@@ -125,7 +125,8 @@ defineProps({
 
 .details--compacts {
   grid-template-columns: repeat(auto-fit, minmax(min(18.75rem, 100%), 1fr));
-  align-items: stretch;
+  /* Chaque vignette prend la hauteur de son contenu, centrée dans sa rangée. */
+  align-items: center;
 }
 
 .details__intro {
