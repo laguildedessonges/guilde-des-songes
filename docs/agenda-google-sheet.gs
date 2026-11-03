@@ -715,7 +715,9 @@ function regrouperRegistre(nomOnglet) {
         texte(champ(i, "Heure de l'inscription")),
         bloc.date,
         bloc.intitule,
-        pseudoDe(i),
+        // Relu tel que la cellule l'affiche : un pseudo gardé en texte par son
+        // apostrophe la perdrait ici, et redeviendrait formule.
+        enTexte(pseudoDe(i)),
         index + 1,
         texte(champ(i, 'Origine')),
       ])
@@ -1066,7 +1068,7 @@ function comparerInteresses(registre, date, titre, pseudos) {
       Utilities.formatDate(maintenant, fuseau(), 'HH:mm:ss'),
       date,
       titre,
-      pseudo,
+      enTexte(pseudo),
       rang,
       ORIGINE_DISCORD,
     ])
@@ -1544,6 +1546,18 @@ function champ(ligne, nom) {
 
 function texte(valeur) {
   return String(valeur === null || valeur === undefined ? '' : valeur).trim()
+}
+
+/**
+ * Pseudo prêt à être écrit tel quel. Chacun choisit le sien sur Discord, et
+ * Sheets prend pour une formule ce qui commence par « = » (ou « + », « - ») :
+ * un pseudo « =IMPORTDATA(…) » s'exécuterait dans le classeur. L'apostrophe
+ * posée devant le force en texte ; elle ne s'affiche pas, et `getValues()` rend
+ * la valeur sans elle — la relève suivante retrouve donc le même pseudo, et ne
+ * le retire ni ne le réécrit. Tout autre pseudo passe inchangé.
+ */
+function enTexte(valeur) {
+  return /^[=+\-@\t\r]/.test(valeur) ? `'${valeur}` : valeur
 }
 
 /**
